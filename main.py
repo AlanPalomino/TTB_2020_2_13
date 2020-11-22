@@ -24,7 +24,8 @@ import json
 #import wfdb
 import ast
 import os
-
+#Developed Functions
+from TT import Case
 
 
 # ================================================================= #
@@ -66,3 +67,10 @@ AR CASES: {len(AR_CASES)}
 MI CASES: {len(MI_CASES)}
 """)
 # %%
+
+#   MIMIC 3 DATA LOAD
+RECORD_DIRS = list(Path(".").glob("*p00*"))
+for record_dir in RECORD_DIRS:
+    record_name = re.search("p[0-9]{6}", str(record_dir))[0]
+    case = Case(record_dir.joinpath(record_name))
+    break
