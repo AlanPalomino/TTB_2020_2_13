@@ -6,6 +6,7 @@ import numpy as np
 import time
 import wfdb
 import re
+
 # ================= Funciones y Definiciones ====================== #
 def timeit(func, *args, **kwargs):
     s_time = time.time()
@@ -14,6 +15,7 @@ def timeit(func, *args, **kwargs):
     print(f"Function {func.__name__} execution time: {e_time - s_time}")
 
 
+# ================= Importando Bases de Datos 
 class Case():
     """
         Generador del compendio de registros y señales para un caso particular.
@@ -60,6 +62,7 @@ class Case():
 
 
 class Record():
+
     def __init__(self, head, record, case):
         self.name = head.record_name
         self.case = case
@@ -90,3 +93,86 @@ class Record():
             a.plot(s)
         axs[-1].set_xlabel("Samples")
         plt.show()
+
+
+# ================= Ventaneo de señales
+class Windowing():
+    """
+        Funciones de ventaneo de las señales 
+    """
+
+    def RR_Windowing(rr_signal, w_len, over, mode="sample"):
+        """ 
+        rr_signal :: RR vector of time in seconds
+        w_time    :: Defines window time in seconds
+        over      :: Defines overlapping between windows
+        l_thresh  :: Gets lower threshold of window
+        mode      :: Sets mode of windowing;
+                        "sample" - Same sized windows, iterates by sample count.
+                        "time" - Variable sized windows, iterates over time window.
+
+        """
+        means, var, skew, kurt = list(), list(), list(), list()
+        step = int(w_len*(1-over))
+        
+        if mode == "time":
+            time_vec = np.cumsum(rr_signal)
+            l_thresh = time_vec[0]
+            while l_thresh < max(time_vec)-w_len:
+                window = np.where(np.bitwise_and((l_thresh < time_vec), (time_vec < (l_thresh+w_len))))
+                rr_window = RR[window]
+                
+                ds = stats.describe(rr_window)
+                means.append(ds[2])
+                var.append(ds[3])
+                skew.append(ds[4])
+                kurt.append(ds[5])
+        
+                l_thresh += step
+
+        elif mode == "sample":
+            for rr_window in [rr_signal[i:i+w_len] for i in range(0, len(rr_signal)-w_len, step)]:
+                ds = stats.describe(rr_window)
+                means.append(ds[2])
+                var.append(ds[3])
+                skew.append(ds[4])
+                kurt.append(ds[5])
+        
+        return means, var, skew, kurt
+
+    def RR_nonLinear_Windowing(rr_signal, w_len, over, mode="sample"):
+        """
+        rr_signal :: RR vector of time in seconds
+        w_time    :: Defines window time in seconds
+        over      :: Defines overlapping between windows
+        l_thresh  :: Gets lower threshold of window
+        mode      :: Sets mode of windowing;
+                        "sample" - Same sized windows, iterates by sample count.
+                        "time" - Variable sized windows, iterates over time window.
+
+        """
+        app_ent, samp_ent, hfd, dfa = list(), list(), list(), list()
+        step = int(w_len*(1-over))
+        
+        if mode == "time":
+            time_vec = np.cumsum(rr_signal)
+            l_thresh = time_vec[0]
+            while l_thresh < max(time_vec)-w_len:
+                window = np.where(np.bitwise_and((l_thresh < time_vec), (time_vec < (l_thresh+w_len))))
+                rr_window = RR[window]
+                
+                app_ent.append(entropy.app_entropy(rr_window, order=2, metric='chebyshev'))
+                samp_ent.append(entropy.sample_entropy(rr_window, order=2))
+                hfd.append(fractal.higuchi_fd(rr_window, kmax=10))
+                dfa.append(fractal.detrended_fluctuation(rr_window))
+        
+                l_thresh += step
+
+        elif mode == "sample":
+            for rr_window in [rr_signal[i:i+w_len] for i in range(0, len(rr_signal)-w_len, step)]:
+                app_ent.append(entropy.app_entropy(rr_window, order=2, metric='chebyshev'))
+                samp_ent.append(entropy.sample_entropy(rr_window, order=2, metric='chebyshev'))
+                hfd.append(fractal.higuchi_fd(rr_window, kmax=10))
+                dfa.append(fractal.detrended_fluctuation(rr_window))
+            
+        return app_ent, samp_ent, dfa
