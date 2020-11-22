@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # ===================== Librerias Utilizadas ====================== #
 from matplotlib import pyplot as plt
 from pathlib import Path
