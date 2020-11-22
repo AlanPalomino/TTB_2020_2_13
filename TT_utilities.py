@@ -1,10 +1,11 @@
+# ===================== Librerias Utilizadas ====================== #
 from matplotlib import pyplot as plt
 from pathlib import Path
 import numpy as np
 import time
 import wfdb
 import re
-
+# ================= Funciones y Definiciones ====================== #
 def timeit(func, *args, **kwargs):
     s_time = time.time()
     func(*args, **kwargs)
