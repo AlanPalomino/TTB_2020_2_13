@@ -14,27 +14,32 @@ def timeit(func, *args, **kwargs):
 
 class Case():
     """
+        Generador del compendio de registros y señales para un caso particular.
+        
         Object looks for files in the directory provided, to build a list
-        of records from the same case 
+        of records from the same case.
     """
+
     RECORDS = []
+
     def __init__(self, case_dir: Path, sig_thresh: int=1000):
         self._case_dir = case_dir
         self._case_name = case_dir.stem
         self._sig_thresh = sig_thresh
         self._read_records()
-    
+
     def __str__(self):
+        "Prints "
         print(f"Case: {self._case_name} - Records above {self._sig_thresh} samples ->")
         for record in self.RECORDS:
             print(record)
         return f"{5*' * '}End of case {self._case_name}{5*' * '}"
-    
+
     def __getitem__(self, index):
         return self.RECORDS[index]
-    
+
     def _read_records(self):
-        for hea_path in self._case_dir.glob(f"{record_name}*[0-9].hea"):
+        for hea_path in self._case_dir.glob(f"{self._case_name}*[0-9].hea"):
             h = wfdb.rdheader(str(hea_path.parent.joinpath(hea_path.stem)))
             self._get_names(h.seg_name, h.seg_len)
 
@@ -43,7 +48,7 @@ class Case():
             if slen < self._sig_thresh or "~" in name:
                 continue
             self._get_data(self._case_dir.joinpath(name))
-    
+
     def _get_data(self, path: Path):
         record = wfdb.rdrecord(str(path))
         header = wfdb.rdheader(str(path))
@@ -51,7 +56,7 @@ class Case():
             Record(header, record, self._case_name)
         )
 
-        
+
 class Record():
     def __init__(self, head, record, case):
         self.name = head.record_name
