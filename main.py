@@ -24,6 +24,7 @@ import json
 #import wfdb
 import ast
 import os
+import re
 
 # ===================== Funciones y Métodos ======================= #
 from TT_utilities import Case
