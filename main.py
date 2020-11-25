@@ -11,6 +11,7 @@
 # %%
 # ===================== Librerias Utilizadas ====================== #
 
+from wfdb.processing.qrs import gqrs_detect
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot as plt
 from matplotlib import gridspec
