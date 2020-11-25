@@ -9,7 +9,7 @@
 #|_________________________________________________________________________|
 
 import re
-from TT_utilities import Case, Case2
+from TT_utilities import Case
 from pathlib import Path
 
 from wfdb.processing.qrs import gqrs_detect
@@ -200,12 +200,12 @@ gens = 1000
 np.random.seed(1)
 
 chaos_pops = simulate(num_gens=total_gens, rate_min=3.99, num_rates=1)
-chaos_pops = chaos_pops.iloc[total_gens-gens:].reset_index().drop(labels='index', axis=1)
-
-random_pops = pd.DataFrame(np.random.random(gens), columns=['value'])
-time_series = pd.concat([chaos_pops, random_pops], axis=1)
-time_series.columns = ['chaos', 'random']
-time_series.head()
+#chaos_pops = chaos_pops.iloc[total_gens-gens:].reset_index().drop(labels='index', axis=1)
+rr_inter = AF_CASES.iloc[0,2]
+#random_pops = pd.DataFrame(np.random.random(gens), columns=['value'])
+time_series = pd.concat([chaos_pops, rr_inter], axis=1)
+#time_series.columns = ['chaos', 'random']
+#time_series.head()
 
 
 # %%
