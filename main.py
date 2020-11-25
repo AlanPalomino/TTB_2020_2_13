@@ -77,30 +77,3 @@ for record_dir in RECORD_DIRS:
     record_name = re.search("p[0-9]{6}", str(record_dir))[0]
     case = Case(record_dir.joinpath(record_name))
     break
-# %%
-# Import packages
-import pyhrv
-import pyhrv.nonlinear as nl
-
-# Load sample data
-nni = pyhrv.utils.load_sample_nni()
-
-# Compute Poincaré using NNI series
-results = nl.poincare(nni)
-
-# Print SD1
-print(results['sd1'])
-# %%
-# Import packages
-import biosppy
-import pyhrv.time_domain as td
-from opensignalsreader import OpenSignalsReader
-
-# Load sample ECG signal stored in an OpenSignals file
-signal = OpenSignalsReader('SampleECG.txt').signal('ECG')
-
-# Get R-peaks series using biosppy
-rpeaks = biosppy.signals.ecg.ecg(signal)[2]
-
-# Compute Poincaré using R-peak series
-results = nl.poincare(rpeaks=rpeaks)
