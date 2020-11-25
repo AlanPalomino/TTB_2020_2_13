@@ -33,6 +33,7 @@ import biosppy
 import numpy as np
 import pyhrv.tools as tools
 import pyhrv.time_domain as td
+import pyhrv.nonlinear as nl
 
 # %%
 

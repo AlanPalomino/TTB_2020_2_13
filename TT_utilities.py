@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 from pathlib import Path
 import numpy as np
 import time
-#import wfdb
+import wfdb
 import re
 
 # ================= Funciones y Definiciones ====================== #
