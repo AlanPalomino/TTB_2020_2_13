@@ -15,13 +15,13 @@ def timeit(func, *args, **kwargs):
     print(f"Function {func.__name__} execution time: {e_time - s_time}")
 
 
-# ================= Importando Bases de Datos 
-class Case2():
+# ================= Importando Bases de Datos
+class Case():
     """
-        Generador del compendio de registros y señales para un caso particular.
-        
-        Object looks for files in the directory provided, to build a list
-        of records from the same case.
+    Generador del compendio de registros y señales para un caso particular.
+
+    Object looks for files in the directory provided, to build a list
+    of records from the same case.
     """
 
     RECORDS = []
@@ -30,16 +30,21 @@ class Case2():
         self._case_dir = case_dir
         self._case_name = case_dir.stem
         self._sig_thresh = sig_thresh
+        self.pathology = re.search(
+            f"([a-z_]*)(_{self._case_name})",
+            str(case_dir)
+        ).groups()[0]
         self._get_records()
 
     def __str__(self):
-        "Prints "
+        """Prints data of self and internal records"""
         print(f"Case: {self._case_name} - Records above {self._sig_thresh} samples ->")
         for record in self.RECORDS:
             print(record)
         return f"{5*' * '}End of case {self._case_name}{5*' * '}"
 
     def __getitem__(self, index):
+        """Extract record as a list"""
         return self.RECORDS[index]
 
     def _get_records(self):
@@ -54,15 +59,13 @@ class Case2():
             self._get_data(self._case_dir.joinpath(name))
 
     def _get_data(self, path: Path):
-        record = wfdb.rdrecord(str(path))
-        header = wfdb.rdheader(str(path))
         self.RECORDS.append(
             Record(path, self._case_name)
         )
 
 
 class Record():
-    def __init__(self, record_dir: Path ,case: str):
+    def __init__(self, record_dir: Path, case: str):
         reco = wfdb.rdrecord(str(record_dir))
         head = wfdb.rdheader(str(record_dir))
         self.record_dir = record_dir
@@ -88,7 +91,7 @@ class Record():
             raise KeyError(f"'{item}' isn't a valid key. Signals in record:{self.sig_names}")
 
     def _get_signals(self):
-        reco = wfdb.rdrecord(str(record_dir))
+        reco = wfdb.rdrecord(str(self.record_dir))
         return reco.p_signal
 
     def plot(self):
@@ -108,7 +111,7 @@ class Record():
 # ================= Ventaneo de señales
 class Windowing():
     """
-        Funciones de ventaneo de las señales 
+    Funciones de ventaneo de las señales 
     """
 
     def RR_Windowing(rr_signal, w_len, over, mode="sample"):
