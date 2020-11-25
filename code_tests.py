@@ -86,12 +86,42 @@ AR CASES: {len(AR_CASES)}
 MI CASES: {len(MI_CASES)}
 """)
 # %%
-
 # Get R-peaks series using biosppy
-rpeaks = biosppy.signals.ecg.ecg(signal)[2]
+rr = np.array(AF_CASES.iloc[0,2])
 
 # Compute Poincaré using R-peak series
-results = nl.poincare(rpeaks=rpeaks)
+results = nl.poincare(rpeaks=rr)
 
 # Show the scatter plot without the fitted ellipse, the SD1 & SD2 vectors and the legend
-results = nl.poincare(nni, ellipse=False, vectors=False, legend=False)
+results = nl.poincare(rr, ellipse=False, vectors=False, legend=False)
+# %%
+# Import packages
+import pyhrv
+import pyhrv.nonlinear as nl
+
+# Load sample data
+#nni = pyhrv.utils.load_sample_nni()
+rr = np.array(AF_CASES.iloc[0,2])
+
+
+# Compute Poincaré using NNI series
+results = nl.poincare(rr)
+
+# Print SD1
+print(results)
+# %%
+# Import packages
+import biosppy
+import pyhrv.time_domain as td
+from opensignalsreader import OpenSignalsReader
+
+# Load sample ECG signal stored in an OpenSignals file
+#acq = OpenSignalsReader('SampleECG.txt')
+# signal = OpenSignalsReader('SampleECG.txt').signal('ECG')
+
+# Get R-peaks series using biosppy
+#rpeaks = biosppy.signals.ecg.ecg(signal)[2]
+
+# Compute Poincaré using R-peak series
+results = nl.poincare(rpeaks=rr)
+# %%
