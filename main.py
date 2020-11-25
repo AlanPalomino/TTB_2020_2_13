@@ -11,6 +11,7 @@
 # %%
 # ===================== Librerias Utilizadas ====================== #
 
+from wfdb.processing.qrs import gqrs_detect
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot as plt
 from matplotlib import gridspec
@@ -21,7 +22,7 @@ import pandas as pd
 import numpy as np
 import decimal
 import json
-#import wfdb
+import wfdb
 import ast
 import os
 import re

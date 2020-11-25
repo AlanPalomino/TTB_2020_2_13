@@ -27,3 +27,21 @@ def Load():
 Load()
 
 # %%
+#================= pyHRV Testing ================================
+
+import biosppy
+import numpy as np
+import pyhrv.tools as tools
+import pyhrv.time_domain as td
+import pyhrv.nonlinear as nl
+
+# %%
+
+# Get R-peaks series using biosppy
+rpeaks = biosppy.signals.ecg.ecg(signal)[2]
+
+# Compute Poincaré using R-peak series
+results = nl.poincare(rpeaks=rpeaks)
+
+# Show the scatter plot without the fitted ellipse, the SD1 & SD2 vectors and the legend
+results = nl.poincare(nni, ellipse=False, vectors=False, legend=False)
