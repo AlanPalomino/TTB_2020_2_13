@@ -8,7 +8,6 @@
 #|      una vez concluido el proyecto.                                     |
 #|_________________________________________________________________________|
 
-import re
 from TT_utilities import Case, CustomPlots
 from pathlib import Path
 
@@ -18,11 +17,11 @@ from matplotlib import pyplot as plt
 #from memory_profiler import profile
 from matplotlib import gridspec
 from scipy.stats import stats
-
 from pprint import pprint 
 import entropy as tpy
 import pandas as pd
 import numpy as np
+import biosppy
 import decimal
 import json
 import wfdb
@@ -78,6 +77,7 @@ HC_CASES = data[(data["conditon"] == "HC") & (data["length"] > 1000)][:num_cases
 AR_CASES = data[(data["conditon"] == "AR") & (data["length"] > 1000)][:num_cases]   # NO HAY CASOS QUE CUMPLAN 
 # MI - Myocardial Infarction
 MI_CASES = data[(data["conditon"] == "MI") & (data["length"] > 1000)][:num_cases]   # NO HAY CASOS QUE CUMPLAN
+
 print(f"""
 AF CASES: {len(AF_CASES)}
 CHF CASES: {len(CHF_CASES)}
