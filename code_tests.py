@@ -106,7 +106,7 @@ rr = np.array(AF_CASES.iloc[0,2])
 
 # Compute Poincaré using NNI series
 #results = nl.poincare(rr,show=False,ellipse=False,vectors=False,legend=False)
-result = CustomPlots.poincarePlot(rr,show=False)
+results = CustomPlots.poincarePlot(rr,show=True,ellipse=False,vectors=False,legend=False)
 # Print SD1
 print(results)
 # %%
