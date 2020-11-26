@@ -324,8 +324,8 @@ class CustomPlots:
             # Output
             args = (sd1, sd2, sd2/sd1, area)
             names = ('sd1', 'sd2', 'sd_ratio', 'ellipse_area')
-            result = biosppy.utils.ReturnTuple(args, names)
+            #result = biosppy.utils.ReturnTuple(args, names)
 
         
-        return result
+        return biosppy.utils.ReturnTuple(args, names)
 # %%
