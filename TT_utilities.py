@@ -196,7 +196,97 @@ class Windowing():
             
         return app_ent, samp_ent, dfa
 
-        def RR_Poincare_Windowing(rr_signal, w_len, over, mode="sample",plotter=False, ):
+        def poincarePlot(nni=None,rpeaks=None,show=True,figsize=None,ellipse=True,vectors=True,legend=True,marker='o'):
+       
+            # Check input values
+            nn = pyhrv.utils.check_input(nni, rpeaks)
+
+            # Prepare Poincaré data
+            x1 = np.asarray(nn[:-1])
+            x2 = np.asarray(nn[1:])
+
+            # SD1 & SD2 Computation
+            sd1 = np.std(np.subtract(x1, x2) / np.sqrt(2))
+            sd2 = np.std(np.add(x1, x2) / np.sqrt(2))
+
+            # Area of ellipse
+            area = np.pi * sd1 * sd2
+
+            
+            # Show plot
+            if show == True:
+
+                # Area of ellipse
+                area = np.pi * sd1 * sd2
+
+                # Prepare figure
+                if figsize is None:
+                    figsize = (6, 6)
+                fig = plt.figure(figsize=figsize)
+                fig.tight_layout()
+                ax = fig.add_subplot(111)
+
+                ax.set_title(r'Diagrama de $Poincar\acute{e}$')
+                ax.set_ylabel('$RR_{i+1}$ [ms]')
+                ax.set_xlabel('$RR_i$ [ms]')
+                ax.set_xlim([np.min(nn) - 50, np.max(nn) + 50])
+                ax.set_ylim([np.min(nn) - 50, np.max(nn) + 50])
+                ax.grid()
+                ax.plot(x1, x2, 'r%s' % marker, markersize=2, alpha=0.5, zorder=3)
+
+                # Compute mean NNI (center of the Poincaré plot)
+                nn_mean = np.mean(nn)
+
+                # Draw poincaré ellipse
+                if ellipse:
+                    ellipse_ = plt.patches.Ellipse((nn_mean, nn_mean), sd1 * 2, sd2 * 2, angle=-45, fc='k', zorder=1)
+                    ax.add_artist(ellipse_)
+                    ellipse_ = plt.patches.Ellipse((nn_mean, nn_mean), sd1 * 2 - 1, sd2 * 2 - 1, angle=-45, fc='lightyellow', zorder=1)
+                    ax.add_artist(ellipse_)
+
+                # Add poincaré vectors (SD1 & SD2)
+                if vectors:
+                    arrow_head_size = 3
+                    na = 4
+                    a1 = ax.arrow(
+                        nn_mean, nn_mean, (-sd1 + na) * np.cos(np.deg2rad(45)), (sd1 - na) * np.sin(np.deg2rad(45)),
+                        head_width=arrow_head_size, head_length=arrow_head_size, fc='g', ec='g', zorder=4, linewidth=1.5)
+                    a2 = ax.arrow(
+                        nn_mean, nn_mean, (sd2 - na) * np.cos(np.deg2rad(45)), (sd2 - na) * np.sin(np.deg2rad(45)),
+                        head_width=arrow_head_size, head_length=arrow_head_size, fc='b', ec='b', zorder=4, linewidth=1.5)
+                    a3 = plt.patches.Patch(facecolor='white', alpha=0.0)
+                    a4 = plt.patches.Patch(facecolor='white', alpha=0.0)
+                    ax.add_line(plt.lines.Line2D(
+                        (min(nn), max(nn)),
+                        (min(nn), max(nn)),
+                        c='b', ls=':', alpha=0.6))
+                    ax.add_line(plt.lines.Line2D(
+                        (nn_mean - sd1 * np.cos(np.deg2rad(45)) * na, nn_mean + sd1 * np.cos(np.deg2rad(45)) * na),
+                        (nn_mean + sd1 * np.sin(np.deg2rad(45)) * na, nn_mean - sd1 * np.sin(np.deg2rad(45)) * na),
+                        c='g', ls=':', alpha=0.6))
+
+                    # Add legend
+                    if legend:
+                        ax.legend(
+                            [a1, a2, a3, a4],
+                            ['SD1: %.3f$ms$' % sd1, 'SD2: %.3f$ms$' % sd2, 'S: %.3f$ms^2$' % area, 'SD1/SD2: %.3f' % (sd1/sd2)],
+                            framealpha=1)
+
+                plt.show()
+                # Output
+                args = (fig, sd1, sd2, sd2/sd1, area)
+                names = ('poincare_plot', 'sd1', 'sd2', 'sd_ratio', 'ellipse_area')
+
+            elif show == False:
+                # Output
+                args = (sd1, sd2, sd2/sd1, area)
+                names = ('sd1', 'sd2', 'sd_ratio', 'ellipse_area')
+                #result = biosppy.utils.ReturnTuple(args, names)
+
+            
+            return biosppy.utils.ReturnTuple(args, names)
+
+        def RR_Poincare_Windowing(rr_signal, w_len, over, mode="sample",plotter=False):
             """
             rr_signal :: RR vector of time in seconds
             w_time    :: Defines window time in seconds
@@ -218,114 +308,28 @@ class Windowing():
                     rr_window = RR[window]
                     
                     if plotter == True:
-                        results = nl.poincare(rr_window,show=True,figsize=None,ellipse=True,vectors=True,legend=True)
+                        poin_values = nl.poincare(rr_window,show=True,figsize=None,ellipse=True,vectors=True,legend=True)
                     elif plotter == False:
-                        results = nl.poincare(rr_window,show=False)
-                        #results = nl.poincare(rr_window)
+                        poin_values = poincarePlot(rr_window,show=False,ellipse=False,vectors=False,legend=False)
+                
             
                     l_thresh += step
 
             elif mode == "sample":
                 for rr_window in [rr_signal[i:i+w_len] for i in range(0, len(rr_signal)-w_len, step)]:
-                    app_ent.append(entropy.app_entropy(rr_window, order=2, metric='chebyshev'))
-                    samp_ent.append(entropy.sample_entropy(rr_window, order=2, metric='chebyshev'))
-                    hfd.append(fractal.higuchi_fd(rr_window, kmax=10))
-                    dfa.append(fractal.detrended_fluctuation(rr_window))
+                    if plotter == True:
+                        poin_values = nl.poincare(rr_window,show=True,figsize=None,ellipse=True,vectors=True,legend=True)
+                    elif plotter == False:
+                        poin_values = poincarePlot(rr_window,show=False,ellipse=False,vectors=False,legend=False)
                 
-            return app_ent, samp_ent, dfa
+            return poin_values
 
 
 # %%
 
 class CustomPlots:
     #================ Custom Poincaré plot
-    def poincarePlot(nni=None,rpeaks=None,show=True,figsize=None,ellipse=True,vectors=True,legend=True,marker='o'):
-       
-        # Check input values
-        nn = pyhrv.utils.check_input(nni, rpeaks)
-
-        # Prepare Poincaré data
-        x1 = np.asarray(nn[:-1])
-        x2 = np.asarray(nn[1:])
-
-        # SD1 & SD2 Computation
-        sd1 = np.std(np.subtract(x1, x2) / np.sqrt(2))
-        sd2 = np.std(np.add(x1, x2) / np.sqrt(2))
-
-        # Area of ellipse
-        area = np.pi * sd1 * sd2
-
-        
-        # Show plot
-        if show == True:
-
-            # Area of ellipse
-            area = np.pi * sd1 * sd2
-
-            # Prepare figure
-            if figsize is None:
-                figsize = (6, 6)
-            fig = plt.figure(figsize=figsize)
-            fig.tight_layout()
-            ax = fig.add_subplot(111)
-
-            ax.set_title(r'$Poincar\acute{e}$')
-            ax.set_ylabel('$NNI_{i+1}$ [ms]')
-            ax.set_xlabel('$NNI_i$ [ms]')
-            ax.set_xlim([np.min(nn) - 50, np.max(nn) + 50])
-            ax.set_ylim([np.min(nn) - 50, np.max(nn) + 50])
-            ax.grid()
-            ax.plot(x1, x2, 'r%s' % marker, markersize=2, alpha=0.5, zorder=3)
-
-            # Compute mean NNI (center of the Poincaré plot)
-            nn_mean = np.mean(nn)
-
-            # Draw poincaré ellipse
-            if ellipse:
-                ellipse_ = plt.patches.Ellipse((nn_mean, nn_mean), sd1 * 2, sd2 * 2, angle=-45, fc='k', zorder=1)
-                ax.add_artist(ellipse_)
-                ellipse_ = plt.patches.Ellipse((nn_mean, nn_mean), sd1 * 2 - 1, sd2 * 2 - 1, angle=-45, fc='lightyellow', zorder=1)
-                ax.add_artist(ellipse_)
-
-            # Add poincaré vectors (SD1 & SD2)
-            if vectors:
-                arrow_head_size = 3
-                na = 4
-                a1 = ax.arrow(
-                    nn_mean, nn_mean, (-sd1 + na) * np.cos(np.deg2rad(45)), (sd1 - na) * np.sin(np.deg2rad(45)),
-                    head_width=arrow_head_size, head_length=arrow_head_size, fc='g', ec='g', zorder=4, linewidth=1.5)
-                a2 = ax.arrow(
-                    nn_mean, nn_mean, (sd2 - na) * np.cos(np.deg2rad(45)), (sd2 - na) * np.sin(np.deg2rad(45)),
-                    head_width=arrow_head_size, head_length=arrow_head_size, fc='b', ec='b', zorder=4, linewidth=1.5)
-                a3 = plt.patches.Patch(facecolor='white', alpha=0.0)
-                a4 = plt.patches.Patch(facecolor='white', alpha=0.0)
-                ax.add_line(plt.lines.Line2D(
-                    (min(nn), max(nn)),
-                    (min(nn), max(nn)),
-                    c='b', ls=':', alpha=0.6))
-                ax.add_line(plt.lines.Line2D(
-                    (nn_mean - sd1 * np.cos(np.deg2rad(45)) * na, nn_mean + sd1 * np.cos(np.deg2rad(45)) * na),
-                    (nn_mean + sd1 * np.sin(np.deg2rad(45)) * na, nn_mean - sd1 * np.sin(np.deg2rad(45)) * na),
-                    c='g', ls=':', alpha=0.6))
-
-                # Add legend
-                if legend:
-                    ax.legend(
-                        [a1, a2, a3, a4],
-                        ['SD1: %.3f$ms$' % sd1, 'SD2: %.3f$ms$' % sd2, 'S: %.3f$ms^2$' % area, 'SD1/SD2: %.3f' % (sd1/sd2)],
-                        framealpha=1)
-
-            plt.show()
-            # Output
-            args = (fig, sd1, sd2, sd2/sd1, area)
-            names = ('poincare_plot', 'sd1', 'sd2', 'sd_ratio', 'ellipse_area')
-
-        elif show == False:
-            # Output
-            args = (sd1, sd2, sd2/sd1, area)
-            names = ('sd1', 'sd2', 'sd_ratio', 'ellipse_area')
-            #result = biosppy.utils.ReturnTuple(args, names)
-
-        
-        return biosppy.utils.ReturnTuple(args, names)
+    """
+    Para Gráficas específicas con modificaciones puntuales
+    """
 # %%
