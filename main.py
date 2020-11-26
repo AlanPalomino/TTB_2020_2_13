@@ -28,7 +28,7 @@ import os
 import re
 
 # ===================== Funciones y Métodos ======================= #
-from TT_utilities import Case
+from TT_utilities import Case, Windowing
 
 
 # ================================================================= #
@@ -77,4 +77,3 @@ for record_dir in RECORD_DIRS:
     record_name = re.search("p[0-9]{6}", str(record_dir))[0]
     case = Case(record_dir.joinpath(record_name))
     break
-# %%
