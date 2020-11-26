@@ -24,9 +24,8 @@ class Case():
     of records from the same case.
     """
 
-    RECORDS = []
-
     def __init__(self, case_dir: Path, sig_thresh: int=1000):
+        self.RECORDS = []
         self._case_dir = case_dir
         self._case_name = case_dir.stem
         self._sig_thresh = sig_thresh
@@ -42,6 +41,13 @@ class Case():
         for record in self.RECORDS:
             print(record)
         return f"{5*' * '}End of case {self._case_name}{5*' * '}"
+
+    def __len__(self):
+        """Returns the number of records contained in the case"""
+        return len(self.RECORDS)
+    
+    def __iter__(self):
+        return CaseIterator(self)
 
     def __getitem__(self, index):
         """Extract record as a list"""
@@ -64,6 +70,20 @@ class Case():
         )
 
 
+class CaseIterator:
+    """Iterator class for Case object"""
+    def __init__(self, case):
+        self._case = case
+        self._index = 0
+    
+    def __next__(self):
+        """Returns the next record from the Case object's list of records"""
+        if self._index < len(self._case):
+            self._index += 1
+            return self._case.RECORDS[self._index-1]
+        raise StopIteration
+
+
 class Record():
     def __init__(self, record_dir: Path, case: str):
         reco = wfdb.rdrecord(str(record_dir))
@@ -74,13 +94,13 @@ class Record():
         self.time = head.base_time
         self.date = head.base_date
         self.fs = reco.fs
-        self.len = reco.sig_len
+        self.slen = reco.sig_len
         self.n_sig = reco.n_sig
         self.sig_names = reco.sig_name
         self.units = reco.units
 
     def __str__(self):
-        return f"\t Record: {self.name}, Length:{self.len}, \t# of signals: {self.n_sig} -> {self.sig_names}"
+        return f"\t Record: {self.name}, Length:{self.slen}, \t# of signals: {self.n_sig} -> {self.sig_names}"
 
     def __getitem__(self, item):
         try:
