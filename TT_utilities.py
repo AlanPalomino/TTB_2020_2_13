@@ -224,50 +224,8 @@ class Windowing():
                 dfa.append(fractal.detrended_fluctuation(rr_window))
             
         return app_ent, samp_ent, dfa
+    
 
-        def RR_Poincare_Windowing(rr_signal, w_len, over, mode="sample",plotter=False, ):
-            """
-            rr_signal :: RR vector of time in seconds
-            w_time    :: Defines window time in seconds
-            over      :: Defines overlapping between windows
-            l_thresh  :: Gets lower threshold of window
-            mode      :: Sets mode of windowing;
-                            "sample" - Same sized windows, iterates by sample count.
-                            "time" - Variable sized windows, iterates over time window.
-            """
-
-            sd_ratio = list()
-            step = int(w_len*(1-over))
-            
-            if mode == "time":
-                time_vec = np.cumsum(rr_signal)
-                l_thresh = time_vec[0]
-                while l_thresh < max(time_vec)-w_len:
-                    window = np.where(np.bitwise_and((l_thresh < time_vec), (time_vec < (l_thresh+w_len))))
-                    rr_window = RR[window]
-                    
-                    if plotter == True:
-                        results = nl.poincare(rr_window,show=True,figsize=None,ellipse=True,vectors=True,legend=True)
-                    elif plotter == False:
-                        results = nl.poincare(rr_window,show=False)
-                        #results = nl.poincare(rr_window)
-            
-                    l_thresh += step
-
-            elif mode == "sample":
-                for rr_window in [rr_signal[i:i+w_len] for i in range(0, len(rr_signal)-w_len, step)]:
-                    app_ent.append(entropy.app_entropy(rr_window, order=2, metric='chebyshev'))
-                    samp_ent.append(entropy.sample_entropy(rr_window, order=2, metric='chebyshev'))
-                    hfd.append(fractal.higuchi_fd(rr_window, kmax=10))
-                    dfa.append(fractal.detrended_fluctuation(rr_window))
-                
-            return app_ent, samp_ent, dfa
-
-
-# %%
-
-class CustomPlots:
-    #================ Custom Poincaré plot
     def poincarePlot(nni=None,rpeaks=None,show=True,figsize=None,ellipse=True,vectors=True,legend=True,marker='o'):
        
         # Check input values
@@ -284,7 +242,7 @@ class CustomPlots:
         # Area of ellipse
         area = np.pi * sd1 * sd2
 
-        
+            
         # Show plot
         if show == True:
 
@@ -294,22 +252,22 @@ class CustomPlots:
             # Prepare figure
             if figsize is None:
                 figsize = (6, 6)
-            fig = plt.figure(figsize=figsize)
-            fig.tight_layout()
-            ax = fig.add_subplot(111)
+                fig = plt.figure(figsize=figsize)
+                fig.tight_layout()
+                ax = fig.add_subplot(111)
 
-            ax.set_title(r'$Poincar\acute{e}$')
-            ax.set_ylabel('$NNI_{i+1}$ [ms]')
-            ax.set_xlabel('$NNI_i$ [ms]')
-            ax.set_xlim([np.min(nn) - 50, np.max(nn) + 50])
-            ax.set_ylim([np.min(nn) - 50, np.max(nn) + 50])
-            ax.grid()
-            ax.plot(x1, x2, 'r%s' % marker, markersize=2, alpha=0.5, zorder=3)
+                ax.set_title(r'Diagrama de $Poincar\acute{e}$')
+                ax.set_ylabel('$RR_{i+1}$ [ms]')
+                ax.set_xlabel('$RR_i$ [ms]')
+                ax.set_xlim([np.min(nn) - 50, np.max(nn) + 50])
+                ax.set_ylim([np.min(nn) - 50, np.max(nn) + 50])
+                ax.grid()
+                ax.plot(x1, x2, 'r%s' % marker, markersize=2, alpha=0.5, zorder=3)
 
-            # Compute mean NNI (center of the Poincaré plot)
-            nn_mean = np.mean(nn)
+                # Compute mean NNI (center of the Poincaré plot)
+                nn_mean = np.mean(nn)
 
-            # Draw poincaré ellipse
+                # Draw poincaré ellipse
             if ellipse:
                 ellipse_ = plt.patches.Ellipse((nn_mean, nn_mean), sd1 * 2, sd2 * 2, angle=-45, fc='k', zorder=1)
                 ax.add_artist(ellipse_)
@@ -345,7 +303,7 @@ class CustomPlots:
                         framealpha=1)
 
             plt.show()
-            # Output
+             # Output
             args = (fig, sd1, sd2, sd2/sd1, area)
             names = ('poincare_plot', 'sd1', 'sd2', 'sd_ratio', 'ellipse_area')
 
@@ -355,6 +313,53 @@ class CustomPlots:
             names = ('sd1', 'sd2', 'sd_ratio', 'ellipse_area')
             #result = biosppy.utils.ReturnTuple(args, names)
 
-        
+            
         return biosppy.utils.ReturnTuple(args, names)
+
+    def RR_Poincare_Windowing(rr_signal, w_len, over, mode="sample",plotter=False):
+        """
+        rr_signal :: RR vector of time in seconds
+        w_time    :: Defines window time in seconds
+        over      :: Defines overlapping between windows
+        l_thresh  :: Gets lower threshold of window
+        mode      :: Sets mode of windowing;
+                        "sample" - Same sized windows, iterates by sample count.
+                        "time" - Variable sized windows, iterates over time window.
+        """
+
+        sd_ratio = list()
+        step = int(w_len*(1-over))
+            
+        if mode == "time":
+            time_vec = np.cumsum(rr_signal)
+            l_thresh = time_vec[0]
+            while l_thresh < max(time_vec)-w_len:
+                window = np.where(np.bitwise_and((l_thresh < time_vec), (time_vec < (l_thresh+w_len))))
+                rr_window = RR[window]
+                    
+                if plotter == True:
+                    poin_values = nl.poincare(rr_window,show=True,figsize=None,ellipse=True,vectors=True,legend=True)
+                elif plotter == False:
+                    poin_values = poincarePlot(rr_window,show=False,ellipse=False,vectors=False,legend=False)
+                
+            
+                l_thresh += step
+
+        elif mode == "sample":
+            for rr_window in [rr_signal[i:i+w_len] for i in range(0, len(rr_signal)-w_len, step)]:
+                if plotter == True:
+                    poin_values = nl.poincare(rr_window,show=True,figsize=None,ellipse=True,vectors=True,legend=True)
+                elif plotter == False:
+                    poin_values = poincarePlot(rr_window,show=False,ellipse=False,vectors=False,legend=False)
+                
+        return poin_values
+
+
+# %%
+
+class CustomPlots:
+    #================ Custom Poincaré plot
+    """
+    Para Gráficas específicas con modificaciones puntuales
+    """
 # %%
