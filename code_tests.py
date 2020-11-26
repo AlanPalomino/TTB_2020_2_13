@@ -9,11 +9,11 @@
 #|_________________________________________________________________________|
 
 import re
-from TT_utilities import Case
+from TT_utilities import Case, CustomPlots
 from pathlib import Path
 
 from wfdb.processing.qrs import gqrs_detect
-from mpl_toolkits.mplot3d import Axes3D
+#from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot as plt
 #from memory_profiler import profile
 from matplotlib import gridspec
@@ -105,8 +105,8 @@ rr = np.array(AF_CASES.iloc[0,2])
 
 
 # Compute Poincaré using NNI series
-results = nl.poincare(rr)
-
+#results = nl.poincare(rr,show=False,ellipse=False,vectors=False,legend=False)
+result = CustomPlots.poincarePlot(rr,show=False)
 # Print SD1
 print(results)
 # %%
