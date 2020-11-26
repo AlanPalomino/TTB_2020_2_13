@@ -195,16 +195,24 @@ label_font = pynamical.get_label_font()
 # sometimes it is hard to tell if a time series is chaotic or random
 # generate two time series of 1,000 steps, one chaotic and one random
 # generate 30,000 time steps for the chaotic series but only keep the final 1,000 (when system is fully evolved)
-total_gens = 30000
+
 gens = 1000
 np.random.seed(1)
 
-chaos_pops = simulate(num_gens=total_gens, rate_min=3.99, num_rates=1)
+
+
 #chaos_pops = chaos_pops.iloc[total_gens-gens:].reset_index().drop(labels='index', axis=1)
-rr_inter = AF_CASES.iloc[0,2]
+
+AF_CASES.head()
+rr  = pd.Series(AF_CASES.iloc[0,2])
+
+total_gens = len(rr)
+logi = simulate(num_gens=total_gens, rate_min=3.99, num_rates=1)
+
+#rr_inter = AF_CASES.iloc[0,2]
 #random_pops = pd.DataFrame(np.random.random(gens), columns=['value'])
-time_series = pd.concat([chaos_pops, rr_inter], axis=1)
-#time_series.columns = ['chaos', 'random']
+time_series = pd.concat([logi, rr], axis=1)
+time_series.columns = ['logistic', 'rr']
 #time_series.head()
 
 
@@ -214,11 +222,11 @@ time_series = pd.concat([chaos_pops, rr_inter], axis=1)
 # plot the chaotic and random time series to show how they are sometimes tough to differentiate
 ax = time_series.plot(kind='line', figsize=[10, 6], linewidth=3, alpha=0.6, style=['#003399','#cc0000'])
 ax.grid(True)
-ax.set_xlim(40, 90)
-ax.set_ylim(0, 1)
-ax.set_title('Time Series, Deterministic Chaos vs Random Data', fontproperties=title_font)
-ax.set_xlabel('Generation', fontproperties=label_font)
-ax.set_ylabel('Population', fontproperties=label_font)
+ax.set_xlim(40, 100)
+#ax.set_ylim(0, 1)
+ax.set_title('Deterministic Chaos vs HRV', fontproperties=title_font)
+ax.set_xlabel('Time', fontproperties=label_font)
+ax.set_ylabel('Frec', fontproperties=label_font)
 ax.legend(loc=3)
 
 #save_fig('chaos-vs-random-line')
@@ -228,16 +236,15 @@ plt.show()
 
 
 # plot same data as 2D phase diagram instead
-pops = pd.concat([chaos_pops, random_pops], axis=1)
-pops.columns = ['chaos', 'random']
-phase_diagram(pops, size=20, color=['#003399','#cc0000'], ymax=1.005, legend=True, 
-              filename='logistic-attractor-chaos-random')
+pops = pd.concat([logi, rr], axis=1)
+pops.columns = ['logistic', 'rr']
+phase_diagram(pops, size=20, color=['#003399','#cc0000'], ymax=1.005, legend=True)
 
 # %%
 
 
 # plot same data as 3D phase diagram instead
-phase_diagram_3d(pops, color=['#003399','#cc0000'], filename='logistic-attractor-chaos-random-3d',
+phase_diagram_3d(pops, color=['#003399','#cc0000'],
                  legend=True, legend_bbox_to_anchor=(0.94, 0.9))
 
 
