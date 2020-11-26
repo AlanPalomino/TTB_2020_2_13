@@ -3,7 +3,10 @@
 
 # ===================== Librerias Utilizadas ====================== #
 from matplotlib import pyplot as plt
+from scipy.signal import find_peaks
+from wfdb import processing
 from pathlib import Path
+
 import numpy as np
 import pyhrv
 import time
@@ -127,8 +130,14 @@ class Record():
             a.plot(s)
         axs[-1].set_xlabel("Samples")
         plt.show()
-        
-        
+
+
+def get_peaks(raw_signal: np.ndarray, fs: int) -> np.ndarray:
+    MAX_BPM = 220
+    raw_peaks, _ = find_peaks(raw_signal, distance=int((60/MAX_BPM)/(1/fs)))
+    med_peaks = processing.correct_peaks(raw_signal, raw_peaks, 30, 35, peak_dir='up')
+    wel_peaks = processing.correct_peaks(raw_signal, med_peaks, 30, 35, peak_dir='up')
+    return wel_peaks
 
 
 # ================= Ventaneo de señales
