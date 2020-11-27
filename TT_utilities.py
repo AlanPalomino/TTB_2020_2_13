@@ -294,9 +294,8 @@ def Poincare_Windowing(rr_signal, w_len, over, mode="sample",plotter=False):
                     "sample" - Same sized windows, iterates by sample count.
                     "time" - Variable sized windows, iterates over time window.
     """
-    args = (0, 0, 0, 0)
-    names = ('sd1', 'sd2', 'sd_ratio', 'ellipse_area')
-    poin_values = biosppy.utils.ReturnTuple(args, names)
+        
+    poin_r =list()
 
     step = int(w_len*(1-over))
         
@@ -308,9 +307,11 @@ def Poincare_Windowing(rr_signal, w_len, over, mode="sample",plotter=False):
             rr_window = RR[window]
                 
             if plotter == True:
-                poin_values = nl.poincare(rr_window,show=True,figsize=None,ellipse=True,vectors=True,legend=True)
+                poincare_results = nl.poincare(rr_window,show=True,figsize=None,ellipse=True,vectors=True,legend=True)
+                poin_r.append(poincare_results["sd_ratio"])
             elif plotter == False:
-                poin_values = poincarePlot(rr_window,show=False)
+                poincare_results = poincarePlot(rr_window,show=False)
+                poin_r.append(poincare_results["sd_ratio"])
             
         
             l_thresh += step
@@ -318,11 +319,13 @@ def Poincare_Windowing(rr_signal, w_len, over, mode="sample",plotter=False):
     elif mode == "sample":
         for rr_window in [rr_signal[i:i+w_len] for i in range(0, len(rr_signal)-w_len, step)]:
             if plotter == True:
-                poin_values = nl.poincare(rr_window,show=True,figsize=None,ellipse=True,vectors=True,legend=True)
+                poincare_results = nl.poincare(rr_window,show=True,figsize=None,ellipse=True,vectors=True,legend=True)
+                poin_r.append(poincare_results["sd_ratio"])
             elif plotter == False:
-                poin_values = poincarePlot(rr_window,show=False)
+                poincare_results = poincarePlot(rr_window,show=False)
+                poin_r.append(poincare_results["sd_ratio"])
             
-    return poin_values
+    return poin_r
 
 
 
