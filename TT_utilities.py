@@ -352,7 +352,7 @@ def add_nonlinear(row: pd.Series, mo_config: dict=_nonm_config):
     row["SampEn"] = samp_ent
     row["HFD"] = hfd
     row["DFA"] = dfa
-    row["SD_ratio"] = poin["sd_ratio"]
+    row["SD_ratio"] = poin
     return row
 
 
