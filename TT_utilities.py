@@ -324,12 +324,35 @@ class Windowing():
                 
         return poin_values
 
+    m_config = {"window": 1000, "overlap": 0.95}
 
-class DistributionPlots:
+    def add_moments(row, mo_config=m_config):
+        means, var, skew, kurt = RR_Windowing(row.rr, m_config["window"], m_config["overlap"])
+        row["M1"] = means
+        row["M2"] = var
+        row["M3"] = skew
+        row["M4"] = kurt
+        row["CV"] = np.divide(var, means)
+        return row
+        
+    nonm_config = {"window": 1000, "overlap": 0.95}
+    def add_nonlinear(row, mo_config=nonm_config ):
+        app_ent, samp_ent, dfa = RR_nonLinear_Windowing(row.rr, m_config["window"], m_config["overlap"])
+        poin = RR_Poincare_Windowing(row.rr, m_config["window"],  m_config["overlap"], mode="sample",plotter=False)
+        row["AppEn"] = app_ent
+        row["SampEn"] = samp_ent
+        row["DFA"] = dfa
+        row["SD_R"] = poin["sd_ratio"]
+    
+        return row
+
+
+class DataPlots:
     #================ Custom Poincaré plot
     """
-    Para Gráficas específicas con modificaciones puntuales
+    Generación de las gráficas de ventaneo y distribuciones
     """
+    
     def distribution_cases(db, caso):
         caso = str(caso)
         moment =['M1','M2','M3','M4','CV']
@@ -375,4 +398,5 @@ class DistributionPlots:
             SERIES.append(CASES[measure].apply(pd.Series).stack().describe().to_frame(name=condition))
         return pd.concat(SERIES, axis=1).round(5)
 # %%
-ks_test = stats.kstest()
+def RunAnalysis():
+#ks_test = stats.kstest()
