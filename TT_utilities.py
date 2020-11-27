@@ -322,7 +322,6 @@ def Poincare_Windowing(rr_signal, w_len, over, mode="sample",plotter=False):
             
     return poin_values
 
-    m_config = {"window": 1000, "overlap": 0.95}
 
 
 _m_config = {"window": 1024, "overlap": 0.95}
