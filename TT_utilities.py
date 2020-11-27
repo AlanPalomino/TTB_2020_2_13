@@ -193,7 +193,7 @@ def nonLinearWindowing(rr_signal: np.ndarray, w_len: int, over: float):
     return app_ent, samp_ent, hfd, dfa
 
 
-def poincarePlot(nni, rpeaks=None, show=True, figsize=None, ellipse=True, vectors=True, legend=True, marker='o'):
+def poincarePlot(nni=None, rpeaks=None, show=True, figsize=None, ellipse=True, vectors=True, legend=True, marker='o'):
     
     # Check input values
     nn = pyhrv.utils.check_input(nni, rpeaks)
@@ -308,7 +308,7 @@ def Poincare_Windowing(rr_signal, w_len, over, mode="sample",plotter=False):
             if plotter == True:
                 poin_values = nl.poincare(rr_window,show=True,figsize=None,ellipse=True,vectors=True,legend=True)
             elif plotter == False:
-                poin_values = poincarePlot(rr_window,show=False,ellipse=False,vectors=False,legend=False)
+                poin_values = poincarePlot(rr_window,show=False)
             
         
             l_thresh += step
@@ -318,7 +318,7 @@ def Poincare_Windowing(rr_signal, w_len, over, mode="sample",plotter=False):
             if plotter == True:
                 poin_values = nl.poincare(rr_window,show=True,figsize=None,ellipse=True,vectors=True,legend=True)
             elif plotter == False:
-                poin_values = poincarePlot(rr_window,show=False,ellipse=False,vectors=False,legend=False)
+                poin_values = poincarePlot(rr_window,show=False)
             
     return poin_values
 
