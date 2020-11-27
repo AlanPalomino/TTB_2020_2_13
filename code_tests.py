@@ -8,7 +8,7 @@
 #|      una vez concluido el proyecto.                                     |
 #|_________________________________________________________________________|
 
-from TT_utilities import Case, CustomPlots
+from TT_utilities import Case
 from pathlib import Path
 
 from wfdb.processing.qrs import gqrs_detect
@@ -106,7 +106,7 @@ rr = np.array(AF_CASES.iloc[0,2])
 
 # Compute Poincaré using NNI series
 #results = nl.poincare(rr,show=False,ellipse=False,vectors=False,legend=False)
-results = CustomPlots.poincarePlot(rr,show=True,ellipse=False,vectors=False,legend=False)
+results = Windowing.poincarePlot(rr,show=False,ellipse=False,vectors=False,legend=False)
 # Print SD1
 print(results)
 # %%
