@@ -17,6 +17,7 @@ import wfdb
 import re
 
 # ================= Funciones y Definiciones ====================== #
+
 def timeit(func, *args, **kwargs):
     s_time = time.time()
     func(*args, **kwargs)
@@ -54,7 +55,7 @@ class Case():
     def __len__(self):
         """Returns the number of records contained in the case"""
         return len(self.RECORDS)
-    
+
     def __iter__(self):
         return CaseIterator(self)
 
@@ -84,7 +85,7 @@ class CaseIterator:
     def __init__(self, case):
         self._case = case
         self._index = 0
-    
+
     def __next__(self):
         """Returns the next record from the Case object's list of records"""
         if self._index < len(self._case):
@@ -144,222 +145,254 @@ def get_peaks(raw_signal: np.ndarray, fs: int) -> np.ndarray:
 
 
 # ================= Ventaneo de señales
-class Windowing():
+
+def linearWindowing(rr_signal: np.ndarray, w_len: int, over: float):
     """
-    Funciones de ventaneo de las señales 
+    Evaluates rr with linear functions based on a rolling window.
+
+    rr_signal   :: RR vector of time in seconds
+    w_len       :: Amount of data points per window analysis
+    over        :: Defines overlapping between windows
     """
+    means, var, skew, kurt = list(), list(), list(), list()
+    step = int(w_len*(1-over))
 
-    def RR_Windowing(rr_signal, w_len, over, mode="sample"):
-        """ 
-        rr_signal :: RR vector of time in seconds
-        w_time    :: Defines window time in seconds
-        over      :: Defines overlapping between windows
-        l_thresh  :: Gets lower threshold of window
-        mode      :: Sets mode of windowing;
-                        "sample" - Same sized windows, iterates by sample count.
-                        "time" - Variable sized windows, iterates over time window.
+    for idx in range(0, len(rr_signal)-w_len, step):
+        window_slice = slice(idx, idx+w_len)
+        ds = stats.describe(rr_signal[window_slice])
+        means.append(ds[2])
+        var.append(ds[3])
+        skew.append(ds[4])
+        kurt.append(ds[5])
 
-        """
-        means, var, skew, kurt = list(), list(), list(), list()
-        step = int(w_len*(1-over))
-        
-        if mode == "time":
-            time_vec = np.cumsum(rr_signal)
-            l_thresh = time_vec[0]
-            while l_thresh < max(time_vec)-w_len:
-                window = np.where(np.bitwise_and((l_thresh < time_vec), (time_vec < (l_thresh+w_len))))
-                rr_window = RR[window]
-                
-                ds = stats.describe(rr_window)
-                means.append(ds[2])
-                var.append(ds[3])
-                skew.append(ds[4])
-                kurt.append(ds[5])
-        
-                l_thresh += step
+    return means, var, skew, kurt
 
-        elif mode == "sample":
-            for rr_window in [rr_signal[i:i+w_len] for i in range(0, len(rr_signal)-w_len, step)]:
-                ds = stats.describe(rr_window)
-                means.append(ds[2])
-                var.append(ds[3])
-                skew.append(ds[4])
-                kurt.append(ds[5])
-        
-        return means, var, skew, kurt
 
-    def RR_nonLinear_Windowing(rr_signal, w_len, over, mode="sample"):
-        """
-        rr_signal :: RR vector of time in seconds
-        w_time    :: Defines window time in seconds
-        over      :: Defines overlapping between windows
-        l_thresh  :: Gets lower threshold of window
-        mode      :: Sets mode of windowing;
-                        "sample" - Same sized windows, iterates by sample count.
-                        "time" - Variable sized windows, iterates over time window.
+def nonLinearWindowing(rr_signal: np.ndarray, w_len: int, over: float):
+    """
+    Evaluates rr with non-linear functions based on a rolling window.
 
-        """
-        app_ent, samp_ent, hfd, dfa = list(), list(), list(), list()
-        step = int(w_len*(1-over))
-        
-        if mode == "time":
-            time_vec = np.cumsum(rr_signal)
-            l_thresh = time_vec[0]
-            while l_thresh < max(time_vec)-w_len:
-                window = np.where(np.bitwise_and((l_thresh < time_vec), (time_vec < (l_thresh+w_len))))
-                rr_window = RR[window]
-                
-                app_ent.append(entropy.app_entropy(rr_window, order=2, metric='chebyshev'))
-                samp_ent.append(entropy.sample_entropy(rr_window, order=2))
-                hfd.append(fractal.higuchi_fd(rr_window, kmax=10))
-                dfa.append(fractal.detrended_fluctuation(rr_window))
-        
-                l_thresh += step
+    rr_signal   :: RR vector of time in seconds
+    w_len       :: Amount of data points per window analysis
+    over        :: Defines overlapping between windows
+    """
+    app_ent, samp_ent, hfd, dfa = list(), list(), list(), list()
+    step = int(w_len*(1-over))
 
-        elif mode == "sample":
-            for rr_window in [rr_signal[i:i+w_len] for i in range(0, len(rr_signal)-w_len, step)]:
-                app_ent.append(entropy.app_entropy(rr_window, order=2, metric='chebyshev'))
-                samp_ent.append(entropy.sample_entropy(rr_window, order=2, metric='chebyshev'))
-                hfd.append(fractal.higuchi_fd(rr_window, kmax=10))
-                dfa.append(fractal.detrended_fluctuation(rr_window))
-            
-        return app_ent, samp_ent, dfa
+    for idx in range(0, len(rr_signal)-w_len, step):
+        window_slice = slice(idx, idx+w_len)
+        rr_window = rr_signal[window_slice]
+        app_ent.append(entropy.app_entropy(rr_window, order=2, metric='chebyshev'))
+        samp_ent.append(entropy.sample_entropy(rr_window, order=2, metric='chebyshev'))
+        hfd.append(fractal.higuchi_fd(rr_window, kmax=10))
+        dfa.append(fractal.detrended_fluctuation(rr_window))
+
+    return app_ent, samp_ent, hfd, dfa
+
+def poincarePlot(nni, rpeaks, show=True, figsize=None, ellipse=True, vectors=True, legend=True, marker='o'):
     
+    # Check input values
+    nn = pyhrv.utils.check_input(nni, rpeaks)
 
-    def poincarePlot(nni=None,rpeaks=None,show=True,figsize=None,ellipse=True,vectors=True,legend=True,marker='o'):
-       
-        # Check input values
-        nn = pyhrv.utils.check_input(nni, rpeaks)
+    # Prepare Poincaré data
+    x1 = np.asarray(nn[:-1])
+    x2 = np.asarray(nn[1:])
 
-        # Prepare Poincaré data
-        x1 = np.asarray(nn[:-1])
-        x2 = np.asarray(nn[1:])
+    # SD1 & SD2 Computation
+    sd1 = np.std(np.subtract(x1, x2) / np.sqrt(2))
+    sd2 = np.std(np.add(x1, x2) / np.sqrt(2))
 
-        # SD1 & SD2 Computation
-        sd1 = np.std(np.subtract(x1, x2) / np.sqrt(2))
-        sd2 = np.std(np.add(x1, x2) / np.sqrt(2))
+    # Area of ellipse
+    area = np.pi * sd1 * sd2
+
+        
+    # Show plot
+    if show == True:
 
         # Area of ellipse
         area = np.pi * sd1 * sd2
 
-            
-        # Show plot
-        if show == True:
+        # Prepare figure
+        if figsize is None:
+            figsize = (6, 6)
+            fig = plt.figure(figsize=figsize)
+            fig.tight_layout()
+            ax = fig.add_subplot(111)
 
-            # Area of ellipse
-            area = np.pi * sd1 * sd2
+            ax.set_title(r'Diagrama de $Poincar\acute{e}$')
+            ax.set_ylabel('$RR_{i+1}$ [ms]')
+            ax.set_xlabel('$RR_i$ [ms]')
+            ax.set_xlim([np.min(nn) - 50, np.max(nn) + 50])
+            ax.set_ylim([np.min(nn) - 50, np.max(nn) + 50])
+            ax.grid()
+            ax.plot(x1, x2, 'r%s' % marker, markersize=2, alpha=0.5, zorder=3)
 
-            # Prepare figure
-            if figsize is None:
-                figsize = (6, 6)
-                fig = plt.figure(figsize=figsize)
-                fig.tight_layout()
-                ax = fig.add_subplot(111)
+            # Compute mean NNI (center of the Poincaré plot)
+            nn_mean = np.mean(nn)
 
-                ax.set_title(r'Diagrama de $Poincar\acute{e}$')
-                ax.set_ylabel('$RR_{i+1}$ [ms]')
-                ax.set_xlabel('$RR_i$ [ms]')
-                ax.set_xlim([np.min(nn) - 50, np.max(nn) + 50])
-                ax.set_ylim([np.min(nn) - 50, np.max(nn) + 50])
-                ax.grid()
-                ax.plot(x1, x2, 'r%s' % marker, markersize=2, alpha=0.5, zorder=3)
+            # Draw poincaré ellipse
+        if ellipse:
+            ellipse_ = plt.patches.Ellipse((nn_mean, nn_mean), sd1 * 2, sd2 * 2, angle=-45, fc='k', zorder=1)
+            ax.add_artist(ellipse_)
+            ellipse_ = plt.patches.Ellipse((nn_mean, nn_mean), sd1 * 2 - 1, sd2 * 2 - 1, angle=-45, fc='lightyellow', zorder=1)
+            ax.add_artist(ellipse_)
 
-                # Compute mean NNI (center of the Poincaré plot)
-                nn_mean = np.mean(nn)
+        # Add poincaré vectors (SD1 & SD2)
+        if vectors:
+            arrow_head_size = 3
+            na = 4
+            a1 = ax.arrow(
+                nn_mean, nn_mean, (-sd1 + na) * np.cos(np.deg2rad(45)), (sd1 - na) * np.sin(np.deg2rad(45)),
+                head_width=arrow_head_size, head_length=arrow_head_size, fc='g', ec='g', zorder=4, linewidth=1.5)
+            a2 = ax.arrow(
+                nn_mean, nn_mean, (sd2 - na) * np.cos(np.deg2rad(45)), (sd2 - na) * np.sin(np.deg2rad(45)),
+                head_width=arrow_head_size, head_length=arrow_head_size, fc='b', ec='b', zorder=4, linewidth=1.5)
+            a3 = plt.patches.Patch(facecolor='white', alpha=0.0)
+            a4 = plt.patches.Patch(facecolor='white', alpha=0.0)
+            ax.add_line(plt.lines.Line2D(
+                (min(nn), max(nn)),
+                (min(nn), max(nn)),
+                c='b', ls=':', alpha=0.6))
+            ax.add_line(plt.lines.Line2D(
+                (nn_mean - sd1 * np.cos(np.deg2rad(45)) * na, nn_mean + sd1 * np.cos(np.deg2rad(45)) * na),
+                (nn_mean + sd1 * np.sin(np.deg2rad(45)) * na, nn_mean - sd1 * np.sin(np.deg2rad(45)) * na),
+                c='g', ls=':', alpha=0.6))
 
-                # Draw poincaré ellipse
-            if ellipse:
-                ellipse_ = plt.patches.Ellipse((nn_mean, nn_mean), sd1 * 2, sd2 * 2, angle=-45, fc='k', zorder=1)
-                ax.add_artist(ellipse_)
-                ellipse_ = plt.patches.Ellipse((nn_mean, nn_mean), sd1 * 2 - 1, sd2 * 2 - 1, angle=-45, fc='lightyellow', zorder=1)
-                ax.add_artist(ellipse_)
+            # Add legend
+            if legend:
+                ax.legend(
+                    [a1, a2, a3, a4],
+                    ['SD1: %.3f$ms$' % sd1, 'SD2: %.3f$ms$' % sd2, 'S: %.3f$ms^2$' % area, 'SD1/SD2: %.3f' % (sd1/sd2)],
+                    framealpha=1)
 
-            # Add poincaré vectors (SD1 & SD2)
-            if vectors:
-                arrow_head_size = 3
-                na = 4
-                a1 = ax.arrow(
-                    nn_mean, nn_mean, (-sd1 + na) * np.cos(np.deg2rad(45)), (sd1 - na) * np.sin(np.deg2rad(45)),
-                    head_width=arrow_head_size, head_length=arrow_head_size, fc='g', ec='g', zorder=4, linewidth=1.5)
-                a2 = ax.arrow(
-                    nn_mean, nn_mean, (sd2 - na) * np.cos(np.deg2rad(45)), (sd2 - na) * np.sin(np.deg2rad(45)),
-                    head_width=arrow_head_size, head_length=arrow_head_size, fc='b', ec='b', zorder=4, linewidth=1.5)
-                a3 = plt.patches.Patch(facecolor='white', alpha=0.0)
-                a4 = plt.patches.Patch(facecolor='white', alpha=0.0)
-                ax.add_line(plt.lines.Line2D(
-                    (min(nn), max(nn)),
-                    (min(nn), max(nn)),
-                    c='b', ls=':', alpha=0.6))
-                ax.add_line(plt.lines.Line2D(
-                    (nn_mean - sd1 * np.cos(np.deg2rad(45)) * na, nn_mean + sd1 * np.cos(np.deg2rad(45)) * na),
-                    (nn_mean + sd1 * np.sin(np.deg2rad(45)) * na, nn_mean - sd1 * np.sin(np.deg2rad(45)) * na),
-                    c='g', ls=':', alpha=0.6))
-
-                # Add legend
-                if legend:
-                    ax.legend(
-                        [a1, a2, a3, a4],
-                        ['SD1: %.3f$ms$' % sd1, 'SD2: %.3f$ms$' % sd2, 'S: %.3f$ms^2$' % area, 'SD1/SD2: %.3f' % (sd1/sd2)],
-                        framealpha=1)
-
-            plt.show()
-             # Output
-            args = (fig, sd1, sd2, sd2/sd1, area)
-            names = ('poincare_plot', 'sd1', 'sd2', 'sd_ratio', 'ellipse_area')
-
-        elif show == False:
+        plt.show()
             # Output
-            args = (sd1, sd2, sd2/sd1, area)
-            names = ('sd1', 'sd2', 'sd_ratio', 'ellipse_area')
-            #result = biosppy.utils.ReturnTuple(args, names)
+        args = (fig, sd1, sd2, sd2/sd1, area)
+        names = ('poincare_plot', 'sd1', 'sd2', 'sd_ratio', 'ellipse_area')
 
-            
-        return biosppy.utils.ReturnTuple(args, names)
+    elif show == False:
+        # Output
+        args = (sd1, sd2, sd2/sd1, area)
+        names = ('sd1', 'sd2', 'sd_ratio', 'ellipse_area')
+        #result = biosppy.utils.ReturnTuple(args, names)
 
-    def RR_Poincare_Windowing(rr_signal, w_len, over, mode="sample",plotter=False):
-        """
-        rr_signal :: RR vector of time in seconds
-        w_time    :: Defines window time in seconds
-        over      :: Defines overlapping between windows
-        l_thresh  :: Gets lower threshold of window
-        mode      :: Sets mode of windowing;
-                        "sample" - Same sized windows, iterates by sample count.
-                        "time" - Variable sized windows, iterates over time window.
-        """
+        
+    return biosppy.utils.ReturnTuple(args, names)
 
-        sd_ratio = list()
-        step = int(w_len*(1-over))
-            
-        if mode == "time":
-            time_vec = np.cumsum(rr_signal)
-            l_thresh = time_vec[0]
-            while l_thresh < max(time_vec)-w_len:
-                window = np.where(np.bitwise_and((l_thresh < time_vec), (time_vec < (l_thresh+w_len))))
-                rr_window = RR[window]
-                    
-                if plotter == True:
-                    poin_values = nl.poincare(rr_window,show=True,figsize=None,ellipse=True,vectors=True,legend=True)
-                elif plotter == False:
-                    poin_values = poincarePlot(rr_window,show=False,ellipse=False,vectors=False,legend=False)
+
+def RR_Poincare_Windowing(rr_signal, w_len, over, mode="sample",plotter=False):
+    """
+    rr_signal :: RR vector of time in seconds
+    w_time    :: Defines window time in seconds
+    over      :: Defines overlapping between windows
+    l_thresh  :: Gets lower threshold of window
+    mode      :: Sets mode of windowing;
+                    "sample" - Same sized windows, iterates by sample count.
+                    "time" - Variable sized windows, iterates over time window.
+    """
+
+    sd_ratio = list()
+    step = int(w_len*(1-over))
+        
+    if mode == "time":
+        time_vec = np.cumsum(rr_signal)
+        l_thresh = time_vec[0]
+        while l_thresh < max(time_vec)-w_len:
+            window = np.where(np.bitwise_and((l_thresh < time_vec), (time_vec < (l_thresh+w_len))))
+            rr_window = RR[window]
                 
+            if plotter == True:
+                poin_values = nl.poincare(rr_window,show=True,figsize=None,ellipse=True,vectors=True,legend=True)
+            elif plotter == False:
+                poin_values = poincarePlot(rr_window,show=False,ellipse=False,vectors=False,legend=False)
             
-                l_thresh += step
+        
+            l_thresh += step
 
-        elif mode == "sample":
-            for rr_window in [rr_signal[i:i+w_len] for i in range(0, len(rr_signal)-w_len, step)]:
-                if plotter == True:
-                    poin_values = nl.poincare(rr_window,show=True,figsize=None,ellipse=True,vectors=True,legend=True)
-                elif plotter == False:
-                    poin_values = poincarePlot(rr_window,show=False,ellipse=False,vectors=False,legend=False)
-                
-        return poin_values
+    elif mode == "sample":
+        for rr_window in [rr_signal[i:i+w_len] for i in range(0, len(rr_signal)-w_len, step)]:
+            if plotter == True:
+                poin_values = nl.poincare(rr_window,show=True,figsize=None,ellipse=True,vectors=True,legend=True)
+            elif plotter == False:
+                poin_values = poincarePlot(rr_window,show=False,ellipse=False,vectors=False,legend=False)
+            
+    return poin_values
 
 
-# %%
+_m_config = {"window": 1024, "overlap": 0.95}
+def add_moments(row: pd.Series, mo_config: dict=_m_config):
+    """Applies five moments to Series object"""
+    means, var, skew, kurt = linearWindowing(row.rr, m_config["window"], m_config["overlap"])
+    row["M1"] = means
+    row["M2"] = var
+    row["M3"] = skew
+    row["M4"] = kurt
+    row["CV"] = np.divide(var, means)
+    return row
 
-class CustomPlots:
+
+_nonm_config = {"window": 2048, "overlap": 0.95}
+def add_nonlinear(row: pd.Series, mo_config: dict=_nonm_config):
+    """Applies four non-linear equations to Series object"""
+    app_ent, samp_ent, hfd, dfa = nonLinearWindowing(row.rr, m_config["window"], m_config["overlap"])
+    row["AppEn"] = app_ent
+    row["SampEn"] = samp_ent
+    row["HFD"] = hfd
+    row["DFA"] = dfa
+    return row
+
+
+class DataPlots:
     #================ Custom Poincaré plot
     """
-    Para Gráficas específicas con modificaciones puntuales
+    Generación de las gráficas de ventaneo y distribuciones
     """
+    
+    def distribution_cases(db, caso):
+        caso = str(caso)
+        moment =['M1','M2','M3','M4','CV']
+        m_label =['Media','Varianza','Skewsness','Curtosis','Coeficiente de Variación ']
+        for idx in range(len(moment)):
+            
+            title = 'Distribución de ' + m_label[idx] +' en Casos de ' + caso
+            xlab = 'Valor de '+ m_label[idx]
+            plt.figure(figsize=(10,7), dpi= 100)
+            plt.gca().set(title=title, ylabel='Frecuencia',xlabel=xlab)
+            for i in range(len(db.index)):
+
+                ms = db.iloc[i][moment[idx]]
+                #x_min =np.min(ms,axis=0)
+                #x_max =np.max(ms,axis=0)
+                
+                lab = db.iloc[i]['record']
+                # Plot Settings
+                kwargs = dict(hist_kws={'alpha':.6}, kde_kws={'linewidth':2})
+                sns.distplot(ms, label= lab ,rug=False, hist=False,**kwargs)
+                
+                #X_axis limits
+                #x_min = int(np.min(ms)) + 10
+                #x_max = int(np.max(ms))+10
+                #plt.xlim(x_min,x_max)
+                #lims = plt.gca().get_xlim()
+                #i = np.where( (ms > lims[0]) &  (ms < lims[1]) )[0]
+                #plt.gca().set_xlim( ms[i].min(), ms[i].max() )
+                plt.autoscale(enable=True, axis='y', tight=True)
+            #show()
+            plt.autoscale()
+            plt.legend()
+    
+    def get_all_stats(data, measure):
+        """
+        DESCRIPCIÓN ESTADISTICA DE TODOS LOS DATOS EN measure
+        """
+        SERIES = list()
+        for condition in data["conditon"].unique():
+            CASES = data[(data["conditon"] == condition) & (data["length"] > 5000)]
+            if len(CASES) == 0:
+                continue
+            SERIES.append(CASES[measure].apply(pd.Series).stack().describe().to_frame(name=condition))
+        return pd.concat(SERIES, axis=1).round(5)
 # %%
+def RunAnalysis():
+#ks_test = stats.kstest()
+
