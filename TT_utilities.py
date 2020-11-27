@@ -329,6 +329,7 @@ _m_config = {"window": 1024, "overlap": 0.95}
 def add_moments(row: pd.Series, mo_config: dict=_m_config):
     """Applies five moments to Series object"""
     means, var, skew, kurt = linearWindowing(row.rr, mo_config["window"], mo_config["overlap"])
+    
     row["M1"] = means
     row["M2"] = var
     row["M3"] = skew
@@ -341,7 +342,8 @@ _nonm_config = {"window": 2048, "overlap": 0.95}
 def add_nonlinear(row: pd.Series, mo_config: dict=_nonm_config):
     """Applies four non-linear equations to Series object"""
     app_ent, samp_ent, hfd, dfa = nonLinearWindowing(row.rr, mo_config["window"], mo_config["overlap"])
-    poin = Poincare_Windowing(row.rr, m_config["window"], m_config["overlap"], mode="sample",plotter=False)
+    poin = Poincare_Windowing(row.rr, mo_config["window"], mo_config["overlap"], mode="sample",plotter=False)
+
     row["AppEn"] = app_ent
     row["SampEn"] = samp_ent
     row["HFD"] = hfd
