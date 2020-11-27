@@ -27,7 +27,7 @@ import os
 import re
 
 # ===================== Funciones y Métodos ======================= #
-from TT_utilities import Case, Windowing,DistributionPlots
+from TT_utilities import *
 
 
 # ================================================================= #
