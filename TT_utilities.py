@@ -329,7 +329,7 @@ _m_config = {"window": 1024, "overlap": 0.95}
 def add_moments(row: pd.Series, mo_config: dict=_m_config):
     """Applies five moments to Series object"""
     means, var, skew, kurt = linearWindowing(row.rr, mo_config["window"], mo_config["overlap"])
-    
+
     row["M1"] = means
     row["M2"] = var
     row["M3"] = skew
@@ -404,5 +404,7 @@ class DataPlots:
         return pd.concat(SERIES, axis=1).round(5)
 # %%
 def RunAnalysis():
-#ks_test = stats.kstest()
+    #ks_test = stats.kstest()
     pass
+
+# %%
