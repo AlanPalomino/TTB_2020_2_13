@@ -6,10 +6,11 @@ from biosppy.utils import ReturnTuple
 from matplotlib import pyplot as plt
 from scipy.signal import find_peaks
 from scipy.stats import stats
+import pyhrv.nonlinear as nl
 from wfdb import processing
 from pathlib import Path
-import pyhrv.nonlinear as nl
 import seaborn as sns
+import pandas as pd
 import numpy as np
 import biosppy
 import pyhrv
@@ -281,7 +282,7 @@ def poincarePlot(nni, rpeaks, show=True, figsize=None, ellipse=True, vectors=Tru
     return biosppy.utils.ReturnTuple(args, names)
 
 
-def RR_Poincare_Windowing(rr_signal, w_len, over, mode="sample",plotter=False):
+def Poincare_Windowing(rr_signal, w_len, over, mode="sample",plotter=False):
     """
     rr_signal :: RR vector of time in seconds
     w_time    :: Defines window time in seconds
@@ -337,10 +338,12 @@ _nonm_config = {"window": 2048, "overlap": 0.95}
 def add_nonlinear(row: pd.Series, mo_config: dict=_nonm_config):
     """Applies four non-linear equations to Series object"""
     app_ent, samp_ent, hfd, dfa = nonLinearWindowing(row.rr, m_config["window"], m_config["overlap"])
+    poin = Poincare_Windowing(row.rr, m_config["window"], m_config["overlap"], mode="sample",plotter=False)
     row["AppEn"] = app_ent
     row["SampEn"] = samp_ent
     row["HFD"] = hfd
     row["DFA"] = dfa
+    row["SD_ratio"] = poin[""]
     return row
 
 
@@ -395,5 +398,3 @@ class DataPlots:
             SERIES.append(CASES[measure].apply(pd.Series).stack().describe().to_frame(name=condition))
         return pd.concat(SERIES, axis=1).round(5)
 # %%
-def RunAnalysis():
-#ks_test = stats.kstest()
