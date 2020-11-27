@@ -193,7 +193,7 @@ def nonLinearWindowing(rr_signal: np.ndarray, w_len: int, over: float):
     return app_ent, samp_ent, hfd, dfa
 
 
-def poincarePlot(nni, rpeaks=None, show=True, figsize=None, ellipse=True, vectors=True, legend=True, marker='o'):
+def poincarePlot(nni=None, rpeaks=None, show=True, figsize=None, ellipse=True, vectors=True, legend=True, marker='o'):
     
     # Check input values
     nn = pyhrv.utils.check_input(nni, rpeaks)
@@ -294,8 +294,9 @@ def Poincare_Windowing(rr_signal, w_len, over, mode="sample",plotter=False):
                     "sample" - Same sized windows, iterates by sample count.
                     "time" - Variable sized windows, iterates over time window.
     """
+        
+    poin_r =list()
 
-    sd_ratio = list()
     step = int(w_len*(1-over))
         
     if mode == "time":
@@ -306,9 +307,11 @@ def Poincare_Windowing(rr_signal, w_len, over, mode="sample",plotter=False):
             rr_window = RR[window]
                 
             if plotter == True:
-                poin_values = nl.poincare(rr_window,show=True,figsize=None,ellipse=True,vectors=True,legend=True)
+                poincare_results = nl.poincare(rr_window,show=True,figsize=None,ellipse=True,vectors=True,legend=True)
+                poin_r.append(poincare_results["sd_ratio"])
             elif plotter == False:
-                poin_values = poincarePlot(rr_window,show=False,ellipse=False,vectors=False,legend=False)
+                poincare_results = poincarePlot(rr_window,show=False)
+                poin_r.append(poincare_results["sd_ratio"])
             
         
             l_thresh += step
@@ -316,19 +319,21 @@ def Poincare_Windowing(rr_signal, w_len, over, mode="sample",plotter=False):
     elif mode == "sample":
         for rr_window in [rr_signal[i:i+w_len] for i in range(0, len(rr_signal)-w_len, step)]:
             if plotter == True:
-                poin_values = nl.poincare(rr_window,show=True,figsize=None,ellipse=True,vectors=True,legend=True)
+                poincare_results = nl.poincare(rr_window,show=True,figsize=None,ellipse=True,vectors=True,legend=True)
+                poin_r.append(poincare_results["sd_ratio"])
             elif plotter == False:
-                poin_values = poincarePlot(rr_window,show=False,ellipse=False,vectors=False,legend=False)
+                poincare_results = poincarePlot(rr_window,show=False)
+                poin_r.append(poincare_results["sd_ratio"])
             
-    return poin_values
+    return poin_r
 
-    m_config = {"window": 1000, "overlap": 0.95}
 
 
 _m_config = {"window": 1024, "overlap": 0.95}
 def add_moments(row: pd.Series, mo_config: dict=_m_config):
     """Applies five moments to Series object"""
     means, var, skew, kurt = linearWindowing(row.rr, mo_config["window"], mo_config["overlap"])
+
     row["M1"] = means
     row["M2"] = var
     row["M3"] = skew
@@ -341,12 +346,13 @@ _nonm_config = {"window": 2048, "overlap": 0.95}
 def add_nonlinear(row: pd.Series, mo_config: dict=_nonm_config):
     """Applies four non-linear equations to Series object"""
     app_ent, samp_ent, hfd, dfa = nonLinearWindowing(row.rr, mo_config["window"], mo_config["overlap"])
-    poin = Poincare_Windowing(row.rr, m_config["window"], m_config["overlap"], mode="sample",plotter=False)
+    poin = Poincare_Windowing(row.rr, mo_config["window"], mo_config["overlap"], mode="sample",plotter=False)
+
     row["AppEn"] = app_ent
     row["SampEn"] = samp_ent
     row["HFD"] = hfd
     row["DFA"] = dfa
-    row["SD_ratio"] = poin["sd_ratio"]
+    row["SD_ratio"] = poin
     return row
 
 
@@ -402,5 +408,7 @@ class DataPlots:
         return pd.concat(SERIES, axis=1).round(5)
 # %%
 def RunAnalysis():
-#ks_test = stats.kstest()
+    #ks_test = stats.kstest()
     pass
+
+# %%
