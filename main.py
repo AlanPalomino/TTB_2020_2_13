@@ -104,3 +104,5 @@ print(" - ".join(CHF_CASES_NL.columns))
 print(" - ".join(HC_CASES_NL.columns))
 
 # %%
+AF_CASES_NL.head()
+# %%
