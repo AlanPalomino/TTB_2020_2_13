@@ -45,13 +45,15 @@ Load()
 # %%
 #================= pyHRV Testing ================================
 
-import biosppy
-import numpy as np
-import pyhrv.tools as tools
-import pyhrv.time_domain as td
-import pyhrv.nonlinear as nl
 
 # %%
+RECORD_DIRS = list(Path("./Data").glob("*p00*"))
+CASES = list()
+for record_dir in RECORD_DIRS:
+    record_name = re.search("p[0-9]{6}", str(record_dir))[0]
+    c = Case(record_dir.joinpath(record_name))
+    CASES.append(c)
+    print(c)
 
 data = list()
 for data_file in os.listdir("./Data_Jsons"):
