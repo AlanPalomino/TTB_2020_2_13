@@ -125,3 +125,11 @@ from opensignalsreader import OpenSignalsReader
 # Compute Poincaré using R-peak series
 results = nl.poincare(rpeaks=rr)
 # %%
+# PRUEBAS DE MÉTRICAS NO LINEALES PARA UNA SEÑAL.
+
+import pyhrv.nonlinear as nl
+from entropy import *
+import pyhrv
+
+rr = np.array(AF_CASES.iloc[0,2])
+# %%
