@@ -294,8 +294,10 @@ def Poincare_Windowing(rr_signal, w_len, over, mode="sample",plotter=False):
                     "sample" - Same sized windows, iterates by sample count.
                     "time" - Variable sized windows, iterates over time window.
     """
+    args = (0, 0, 0, 0)
+    names = ('sd1', 'sd2', 'sd_ratio', 'ellipse_area')
+    poin_values = biosppy.utils.ReturnTuple(args, names)
 
-    sd_ratio = list()
     step = int(w_len*(1-over))
         
     if mode == "time":
