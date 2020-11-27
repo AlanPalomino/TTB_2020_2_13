@@ -10,7 +10,9 @@ from wfdb import processing
 from pathlib import Path
 import pyhrv.nonlinear as nl
 import seaborn as sns
+import pandas as pd
 import numpy as np
+import entropy
 import biosppy
 import pyhrv
 import time
@@ -185,10 +187,11 @@ def nonLinearWindowing(rr_signal: np.ndarray, w_len: int, over: float):
         rr_window = rr_signal[window_slice]
         app_ent.append(entropy.app_entropy(rr_window, order=2, metric='chebyshev'))
         samp_ent.append(entropy.sample_entropy(rr_window, order=2, metric='chebyshev'))
-        hfd.append(fractal.higuchi_fd(rr_window, kmax=10))
-        dfa.append(fractal.detrended_fluctuation(rr_window))
+        hfd.append(entropy.fractal.higuchi_fd(rr_window, kmax=10))
+        dfa.append(entropy.fractal.detrended_fluctuation(rr_window))
 
     return app_ent, samp_ent, hfd, dfa
+
 
 def poincarePlot(nni, rpeaks, show=True, figsize=None, ellipse=True, vectors=True, legend=True, marker='o'):
     
@@ -321,10 +324,11 @@ def RR_Poincare_Windowing(rr_signal, w_len, over, mode="sample",plotter=False):
 
     m_config = {"window": 1000, "overlap": 0.95}
 
+
 _m_config = {"window": 1024, "overlap": 0.95}
 def add_moments(row: pd.Series, mo_config: dict=_m_config):
     """Applies five moments to Series object"""
-    means, var, skew, kurt = linearWindowing(row.rr, m_config["window"], m_config["overlap"])
+    means, var, skew, kurt = linearWindowing(row.rr, mo_config["window"], mo_config["overlap"])
     row["M1"] = means
     row["M2"] = var
     row["M3"] = skew
@@ -336,7 +340,7 @@ def add_moments(row: pd.Series, mo_config: dict=_m_config):
 _nonm_config = {"window": 2048, "overlap": 0.95}
 def add_nonlinear(row: pd.Series, mo_config: dict=_nonm_config):
     """Applies four non-linear equations to Series object"""
-    app_ent, samp_ent, hfd, dfa = nonLinearWindowing(row.rr, m_config["window"], m_config["overlap"])
+    app_ent, samp_ent, hfd, dfa = nonLinearWindowing(row.rr, mo_config["window"], mo_config["overlap"])
     row["AppEn"] = app_ent
     row["SampEn"] = samp_ent
     row["HFD"] = hfd
@@ -349,7 +353,7 @@ class DataPlots:
     """
     Generación de las gráficas de ventaneo y distribuciones
     """
-    
+
     def distribution_cases(db, caso):
         caso = str(caso)
         moment =['M1','M2','M3','M4','CV']
@@ -397,3 +401,4 @@ class DataPlots:
 # %%
 def RunAnalysis():
 #ks_test = stats.kstest()
+    pass
