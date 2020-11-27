@@ -193,7 +193,7 @@ def nonLinearWindowing(rr_signal: np.ndarray, w_len: int, over: float):
     return app_ent, samp_ent, hfd, dfa
 
 
-def poincarePlot(nni, rpeaks, show=True, figsize=None, ellipse=True, vectors=True, legend=True, marker='o'):
+def poincarePlot(nni, rpeaks=None, show=True, figsize=None, ellipse=True, vectors=True, legend=True, marker='o'):
     
     # Check input values
     nn = pyhrv.utils.check_input(nni, rpeaks)
