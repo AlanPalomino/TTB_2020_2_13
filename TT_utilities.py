@@ -4,6 +4,7 @@
 # ===================== Librerias Utilizadas ====================== #
 from biosppy.utils import ReturnTuple
 from matplotlib import pyplot as plt
+from scipy.stats import stats
 import pyhrv.nonlinear as nl
 from pathlib import Path
 import seaborn as sns
@@ -112,9 +113,6 @@ class Record():
         axs[-1].set_xlabel("Samples")
         plt.show()
         
-        
-
-
 # ================= Ventaneo de señales
 class Windowing():
     """
@@ -327,8 +325,6 @@ class Windowing():
         return poin_values
 
 
-# %%
-
 class DistributionPlots:
     #================ Custom Poincaré plot
     """
@@ -379,3 +375,4 @@ class DistributionPlots:
             SERIES.append(CASES[measure].apply(pd.Series).stack().describe().to_frame(name=condition))
         return pd.concat(SERIES, axis=1).round(5)
 # %%
+ks_test = stats.kstest()
