@@ -5,10 +5,11 @@
 from biosppy.utils import ReturnTuple
 from matplotlib import pyplot as plt
 from scipy.signal import find_peaks
+from scipy.stats import stats
 from wfdb import processing
-import pyhrv.nonlinear as nl
 from pathlib import Path
-
+import pyhrv.nonlinear as nl
+import seaborn as sns
 import numpy as np
 import biosppy
 import pyhrv
@@ -318,6 +319,7 @@ def RR_Poincare_Windowing(rr_signal, w_len, over, mode="sample",plotter=False):
             
     return poin_values
 
+    m_config = {"window": 1000, "overlap": 0.95}
 
 _m_config = {"window": 1024, "overlap": 0.95}
 def add_moments(row: pd.Series, mo_config: dict=_m_config):
@@ -395,4 +397,3 @@ class DataPlots:
 # %%
 def RunAnalysis():
 #ks_test = stats.kstest()
-

@@ -15,7 +15,6 @@ from wfdb.processing.qrs import gqrs_detect
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot as plt
 from matplotlib import gridspec
-from scipy.stats import stats
 from pprint import pprint 
 import entropy as tpy
 import pandas as pd
@@ -28,7 +27,7 @@ import os
 import re
 
 # ===================== Funciones y Métodos ======================= #
-from TT_utilities import Case, Windowing
+from TT_utilities import Case, Windowing,DistributionPlots
 
 
 # ================================================================= #
@@ -77,3 +76,5 @@ for record_dir in RECORD_DIRS:
     record_name = re.search("p[0-9]{6}", str(record_dir))[0]
     case = Case(record_dir.joinpath(record_name))
     break
+
+# %%
