@@ -132,7 +132,7 @@ class Case():
     def _plot_nonlinear(self):
         titles = ["Entropía Aproximada", "Entropía Muestral", "HFD", "DFA"]
         keys = ["app_ent", "samp_ent", "hfd", "dfa"]
-        fig, axs = plt.subplots(nrows=1, ncols=len(keys), figsize=(12, 15))
+        fig, axs = plt.subplots(nrows=len(keys), ncols=1, figsize=(12, 15))
         fig.suptitle(f"Non Linear Analysis of case {self._case_name}")
         for k, t, a in zip(keys, titles, axs):
             local_max = 0
@@ -149,7 +149,7 @@ class Case():
     def _plot_linear(self):
         titles = ["Media", "Varianza", "Asimetría", "Curtosis"]
         keys = ["means", "var", "skewness", "kurtosis"]
-        fig, axs = plt.subplots(nrows=1, ncols=len(keys), figsize=(12, 15))
+        fig, axs = plt.subplots(nrows=len(keys), ncols=1, figsize=(12, 15))
         fig.suptitle(f"Linear Analysis of case {self._case_name}")
         for k, t, a in zip(keys, titles, axs):
             local_max = 0
@@ -267,7 +267,7 @@ def get_peaks(raw_signal: np.ndarray, fs: int) -> np.ndarray:
     MAX_BPM = 220
     raw_peaks, _ = find_peaks(raw_signal, distance=int((60/MAX_BPM)/(1/fs)))
     med_peaks = processing.correct_peaks(raw_signal, raw_peaks, 30, 35, peak_dir='up')
-    print("med_peaks: ", med_peaks[:10])
+    # print("med_peaks: ", med_peaks[:10])
     wel_peaks = processing.correct_peaks(raw_signal, med_peaks, 30, 35, peak_dir='up') if med_peaks is not [] else raw_peaks
     return wel_peaks[~np.isnan(wel_peaks)]
 
