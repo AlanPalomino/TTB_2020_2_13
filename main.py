@@ -107,50 +107,12 @@ print(" - ".join(HC_CASES_NL.columns))
 # %%
 HC_CASES_NL.head()
 # %%
-
-def get_max(DF, col):
-    return np.max([np.max(DF[col][i]) for i in DF.index if len(DF[col][i]) > 0])
-
-def get_min(DF, col):
-    return np.min([np.min(DF[col][i]) for i in DF.index if len(DF[col][i]) > 0])
+from TT_utilities import plot_NL_metrics
 
 conditions = ["Fibrilación Atrial", "Insuficiencia Cardíaca Congestiva", "Casos Saludables"]
 techniques = ["Entropía aproximada", "Entropía muestral", "Analisis de Fluctuación sin Tendencia (DFA)", "Coeficiente de Higuchi (HFD)","Radio = SD1/SD2"]
 columns = ["AppEn", "SampEn", "DFA", "HFD","SD_ratio"]
 cases = [AF_CASES_NL, CHF_CASES_NL, HC_CASES_NL]
-
-def plot_NL_metrics(DataBases, techniques, conditions, columns):
-    """
-    docstring
-    """
-    for idx, title, col in zip([1, 2, 3, 4, 5], techniques, columns):
-        figure, axs = plt.subplots(3, 1, figsize=(8, 10))
-        figure.suptitle(title, y=1.01)
-        
-        top = np.max([get_max(c, col) for c in cases])
-        bot = np.min([get_min(c, col) for c in cases])
-        
-        axs[0].set_title(conditions[0])
-        for i in range(len(cases[0])):
-            axs[0].plot(cases[0].iloc[i][col])
-        axs[0].autoscale(enable=True, axis='x', tight=True)
-        axs[0].set_ylim(bottom=bot, top=top)
-
-        axs[1].set_title(conditions[1])
-        for i in range(len(cases[1])):
-            axs[1].plot(cases[1].iloc[i][col])
-        axs[1].autoscale(enable=True, axis='x', tight=True)
-        axs[1].set_ylim(bottom=bot, top=top)
-
-        axs[2].set_title(conditions[2])
-        for i in range(len(cases[2])):
-            axs[2].plot(cases[2].iloc[i][col])
-        axs[2].autoscale(enable=True, axis='x', tight=True)
-        axs[2].set_ylim(bottom=bot, top=top)
-
-        axs[-1].set_xlabel(f"Figura {idx}")
-        plt.tight_layout()
-        plt.show()
     
 plot_NL_metrics(cases, techniques, conditions, columns)
 # %%
@@ -168,4 +130,11 @@ for idx in range(len(cases)):
     distribution_NL(cases[idx], conditions[idx])
 
 #distribution_NL(HC_CASES_NL, 'Grupo Sano')
+# %%
+# KS TEST (CONVERTIR EN FUNCIÓN GENERAL Y BORRAR DE MAIN)
+columns = ["AppEn", "SampEn", "DFA", "HFD","SD_ratio"]
+
+metric = HC_CASES_NL[columns[1]]
+x = metric[0]
+stats.kstest(x, 'norm')
 # %%
