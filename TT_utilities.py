@@ -29,7 +29,7 @@ def timeit(func):
         s_time = time.time()
         r = func(*args, **kwargs)
         e_time = time.time()
-        print(f"Function {func.__name__} execution time: {e_time - s_time}")
+        print(f"Function {func.__name__} execution time: {e_time - s_time:.2f}'s")
         return r
     return timed_func
 
@@ -45,6 +45,8 @@ class Case():
 
     def __init__(self, case_dir: Path, sig_thresh: int=1000):
         self.RECORDS = []
+        self.sig = []
+        self.nl_sig = []
         self._case_dir = case_dir
         self._case_name = case_dir.stem
         self._sig_thresh = sig_thresh
@@ -89,14 +91,16 @@ class Case():
         )
 
     @timeit
-    def _linear_analysis(self):
+    def _linear_analysis_c(self):
         for record in self.RECORDS:
-            record._linear_analysis(self._main_signal)
+            if record not in self.l_sig and record._linear_analysis_r(self._main_signal):
+                self.l_sig.append(record)
 
     @timeit
-    def _non_linear_analysis(self):
+    def _non_linear_analysis_c(self):
         for record in self.RECORDS:
-            record._non_linear_analysis(self._main_signal)
+            if record not in self.nl_sig and record._non_linear_analysis_r(self._main_signal):
+                self.nl_sig.append(record)
 
     def process(self, mode: str="nonlinear"):
         def run_all(d: dict):
@@ -104,8 +108,8 @@ class Case():
             return
 
         analysis_selector = {
-            "linear": self._linear_analysis,
-            "nonlinear": self._non_linear_analysis
+            "linear": self._linear_analysis_c,
+            "nonlinear": self._non_linear_analysis_c
         }
 
         top_signals = Counter(chain.from_iterable([r.sig_names for r in self.RECORDS])).most_common()
@@ -125,14 +129,14 @@ class Case():
         return
 
     @timeit
-    def _plot_nonlinear():
+    def _plot_nonlinear(self):
         titles = ["Entropía Aproximada", "Entropía Muestral", "HFD", "DFA"]
         keys = ["app_ent", "samp_ent", "hfd", "dfa"]
-        fig, axs = plt.subplots(nrows=1, ncols=len(keys), figsize=(12, 15))
+        fig, axs = plt.subplots(nrows=len(keys), ncols=1, figsize=(12, 15))
         fig.suptitle(f"Non Linear Analysis of case {self._case_name}")
         for k, t, a in zip(keys, titles, axs):
             local_max = 0
-            for seg in [r.N_LINEAR[k] for r in self.RECORDS]:
+            for seg in [r.N_LINEAR[k] for r in self.nl_sig]:
                 x = np.arange(len(seg)) + local_max
                 a.plot(x, seg)
                 local_max = np.max(x) + 1
@@ -142,14 +146,14 @@ class Case():
         plt.show()
     
     @timeit
-    def _plot_linear():
+    def _plot_linear(self):
         titles = ["Media", "Varianza", "Asimetría", "Curtosis"]
         keys = ["means", "var", "skewness", "kurtosis"]
-        fig, axs = plt.subplots(nrows=1, ncols=len(keys), figsize=(12, 15))
+        fig, axs = plt.subplots(nrows=len(keys), ncols=1, figsize=(12, 15))
         fig.suptitle(f"Linear Analysis of case {self._case_name}")
         for k, t, a in zip(keys, titles, axs):
             local_max = 0
-            for seg in [r.N_LINEAR[k] for r in self.RECORDS]:
+            for seg in [r.N_LINEAR[k] for r in self.l_sig]:
                 x = np.arange(len(seg)) + local_max
                 a.plot(x, seg)
                 local_max = np.max(x) + 1
@@ -158,8 +162,8 @@ class Case():
         plt.tight_layout()
         plt.show()
         
-
-    def plot(mode="full"):
+    @timeit
+    def plotProcess(self, mode="full"):
         if mode == "full":
             self._plot_nonlinear()
             self._plot_linear()
@@ -215,13 +219,15 @@ class Record():
         reco = wfdb.rdrecord(str(self.record_dir))
         return reco.p_signal
 
-    def _linear_analysis(self, signal: str):
+    @timeit
+    def _linear_analysis_r(self, signal: str):
         if self.rr is None:
             # get RR
             raw_signal = self[signal]
             self.rr = np.diff(get_peaks(raw_signal, self.fs))
-        print("raw: ", raw_signal[:10])
-        print("rr: ", self.rr[:10])
+            if len(self.rr) == 0:
+                return 
+        print(f"Record {self.name} rr has length of {len(self.rr)}")
         m, v, s, k = linearWindowing(self.rr, w_len=1024, over=0.95)
         self.LINEAR = {
             "means": m,
@@ -229,13 +235,17 @@ class Record():
             "skewness": s,
             "kurtosis": k
         }
-        return
+        return True
     
-    def _non_linear_analysis(self, signal: str):
+    @timeit
+    def _non_linear_analysis_r(self, signal: str):
         if self.rr is  None:
             # get RR
             raw_signal = self[signal]
             self.rr = np.diff(get_peaks(raw_signal, self.fs))
+            if len(self.rr) < 2048*1.5:
+                return False
+        print(f"Record {self.name} rr has length of {len(self.rr)}")
         a, s, h, d = nonLinearWindowing(self.rr, w_len=2048, over=0.95)
         self.N_LINEAR = {
             "app_ent": a,
@@ -243,7 +253,7 @@ class Record():
             "hfd": h,
             "dfa": d
         }
-        return
+        return True
 
     def plot(self):
         fig, axs = plt.subplots(self.n_sig, 1)
@@ -261,6 +271,7 @@ def get_peaks(raw_signal: np.ndarray, fs: int) -> np.ndarray:
     MAX_BPM = 220
     raw_peaks, _ = find_peaks(raw_signal, distance=int((60/MAX_BPM)/(1/fs)))
     med_peaks = processing.correct_peaks(raw_signal, raw_peaks, 30, 35, peak_dir='up')
+    # print("med_peaks: ", med_peaks[:10])
     wel_peaks = processing.correct_peaks(raw_signal, med_peaks, 30, 35, peak_dir='up') if med_peaks is not [] else raw_peaks
     return wel_peaks[~np.isnan(wel_peaks)]
 
@@ -518,13 +529,15 @@ def get_all_stats(data, measure):
         SERIES.append(CASES[measure].apply(pd.Series).stack().describe().to_frame(name=condition))
     return pd.concat(SERIES, axis=1).round(5)
 
-def distribution_NL(db, caso):
+def distribution_NL(db, caso, area=False):
     caso = str(caso)
     moment =['AppEn','SampEn','HFD','DFA','SD_ratio']
     m_label =['Ent_Aprox','Ent_Muestra','Higuchi','DFA','R= SD1/SD2']
+    path = '/imagenes/'
     for idx in range(len(moment)):
             
         title = 'Distribución de ' + m_label[idx] +' en Casos de ' + caso
+        figname = m_label[idx]+"_"+caso+'.png'
         xlab = 'Valor de '+ m_label[idx]
         plt.figure(figsize=(10,7), dpi= 100)
         plt.gca().set(title=title, ylabel='Coeficiente',xlabel=xlab)
@@ -537,19 +550,33 @@ def distribution_NL(db, caso):
             lab = db.iloc[i]['record']
             # Plot Settings
             kwargs = dict(hist_kws={'alpha':.6}, kde_kws={'linewidth':2})
-            sns.distplot(ms, label= lab ,rug=False, hist=False,**kwargs)
+            if area == True:
+                sns.distplot(ms, label= lab ,rug=False, hist=True,**kwargs)
                 
-            #X_axis limits
-            #x_min = int(np.min(ms)) + 10
-            #x_max = int(np.max(ms))+10
-            #plt.xlim(x_min,x_max)
-            #lims = plt.gca().get_xlim()
-            #i = np.where( (ms > lims[0]) &  (ms < lims[1]) )[0]
-            #plt.gca().set_xlim( ms[i].min(), ms[i].max() )
-            plt.autoscale(enable=True, axis='y', tight=True)
+                #X_axis limits
+                #x_min = int(np.min(ms)) + 10
+                #x_max = int(np.max(ms))+10
+                #plt.xlim(x_min,x_max)
+                #lims = plt.gca().get_xlim()
+                #i = np.where( (ms > lims[0]) &  (ms < lims[1]) )[0]
+                #plt.gca().set_xlim( ms[i].min(), ms[i].max() )
+                plt.autoscale(enable=True, axis='y', tight=True)
+            else:
+                sns.distplot(ms, label= lab ,rug=False, hist=False,**kwargs)
+                    
+                #X_axis limits
+                #x_min = int(np.min(ms)) + 10
+                #x_max = int(np.max(ms))+10
+                #plt.xlim(x_min,x_max)
+                #lims = plt.gca().get_xlim()
+                #i = np.where( (ms > lims[0]) &  (ms < lims[1]) )[0]
+                #plt.gca().set_xlim( ms[i].min(), ms[i].max() )
+                plt.autoscale(enable=True, axis='y', tight=True)
+            
         #show()
         plt.autoscale()
         plt.legend()
+        plt.savefig(path + figname )
     
 def get_allNL_stats(data, measure):
     """
@@ -563,6 +590,45 @@ def get_allNL_stats(data, measure):
         SERIES.append(CASES[measure].apply(pd.Series).stack().describe().to_frame(name=condition))
     return pd.concat(SERIES, axis=1).round(5)
 
+
+def get_max(DF, col):
+    return np.max([np.max(DF[col][i]) for i in DF.index if len(DF[col][i]) > 0])
+
+def get_min(DF, col):
+    return np.min([np.min(DF[col][i]) for i in DF.index if len(DF[col][i]) > 0])
+
+def plot_NL_metrics(DataBases, techniques, conditions, columns):
+    """
+    docstring
+    """
+    for idx, title, col in zip([1, 2, 3, 4, 5], techniques, columns):
+        figure, axs = plt.subplots(3, 1, figsize=(8, 10))
+        figure.suptitle(title, y=1.01)
+        
+        top = np.max([get_max(c, col) for c in cases])
+        bot = np.min([get_min(c, col) for c in cases])
+        
+        axs[0].set_title(conditions[0])
+        for i in range(len(cases[0])):
+            axs[0].plot(cases[0].iloc[i][col])
+        axs[0].autoscale(enable=True, axis='x', tight=True)
+        axs[0].set_ylim(bottom=bot, top=top)
+
+        axs[1].set_title(conditions[1])
+        for i in range(len(cases[1])):
+            axs[1].plot(cases[1].iloc[i][col])
+        axs[1].autoscale(enable=True, axis='x', tight=True)
+        axs[1].set_ylim(bottom=bot, top=top)
+
+        axs[2].set_title(conditions[2])
+        for i in range(len(cases[2])):
+            axs[2].plot(cases[2].iloc[i][col])
+        axs[2].autoscale(enable=True, axis='x', tight=True)
+        axs[2].set_ylim(bottom=bot, top=top)
+
+        axs[-1].set_xlabel(f"Figura {idx}")
+        plt.tight_layout()
+        plt.show()
 # %%
 def RunAnalysis():
     #ks_test = stats.kstest()
