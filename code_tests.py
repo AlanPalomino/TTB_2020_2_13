@@ -89,7 +89,7 @@ MI CASES: {len(MI_CASES)}
 """)
 # %%
 # Get R-peaks series using biosppy
-rr = np.array(AF_CASES.iloc[0,2])
+rr = np.array(HC_CASES.iloc[0,2])
 
 # Compute Poincaré using R-peak series
 results = nl.poincare(rpeaks=rr)
@@ -103,12 +103,12 @@ import pyhrv.nonlinear as nl
 
 # Load sample data
 #nni = pyhrv.utils.load_sample_nni()
-rr = np.array(AF_CASES.iloc[0,2])
-
+#rr = np.array(AF_CASES.iloc[0,2])
+rr = np.array(HC_CASES.iloc[0,2])
 
 # Compute Poincaré using NNI series
-#results = nl.poincare(rr,show=False,ellipse=False,vectors=False,legend=False)
-results = Windowing.poincarePlot(rr,show=False,ellipse=False,vectors=False,legend=False)
+results = nl.poincare(rr,show=True,ellipse=True,vectors=True,legend=True)
+#results = Windowing.poincarePlot(rr,show=False,ellipse=False,vectors=False,legend=False)
 # Print SD1
 print(results)
 # %%
