@@ -152,9 +152,18 @@ def plot_NL_metrics(DataBases, techniques, conditions, columns):
         plt.tight_layout()
         plt.show()
     
-
+plot_NL_metrics(cases, techniques, conditions, columns)
 # %%
 from TT_utilities import distribution_NL
 
-distribution_NL(HC_CASES_NL, 'Grupo Sano')
+
+conditions = ["Fibrilación Atrial", "Insuficiencia Cardíaca Congestiva", "de Control"]
+techniques = ["Entropía aproximada", "Entropía muestral", "Analisis de Fluctuación sin Tendencia (DFA)", "Coeficiente de Higuchi (HFD)","Radio = SD1/SD2"]
+columns = ["AppEn", "SampEn", "DFA", "HFD","SD_ratio"]
+cases = [AF_CASES_NL, CHF_CASES_NL, HC_CASES_NL]
+
+for idx in range(len(cases)):
+    distribution_NL(cases[idx], conditions[idx])
+
+#distribution_NL(HC_CASES_NL, 'Grupo Sano')
 # %%
