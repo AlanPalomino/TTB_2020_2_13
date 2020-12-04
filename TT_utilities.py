@@ -45,6 +45,8 @@ class Case():
 
     def __init__(self, case_dir: Path, sig_thresh: int=1000):
         self.RECORDS = []
+        self.sig = []
+        self.nl_sig = []
         self._case_dir = case_dir
         self._case_name = case_dir.stem
         self._sig_thresh = sig_thresh
@@ -88,13 +90,17 @@ class Case():
             Record(path, self._case_name)
         )
 
-    def _linear_analysis(self):
+    @timeit
+    def _linear_analysis_c(self):
         for record in self.RECORDS:
-            record._linear_analysis(self._main_signal)
+            record._linear_analysis_r(self._main_signal)
 
-    def _non_linear_analysis(self):
+    @timeit
+    def _non_linear_analysis_c(self):
         for record in self.RECORDS:
-            record._non_linear_analysis(self._main_signal)
+            v = record._non_linear_analysis_r(self._main_signal)
+            if v:
+                self.nl_sig.append()
 
     def process(self, mode: str="nonlinear"):
         def run_all(d: dict):
@@ -102,8 +108,8 @@ class Case():
             return
 
         analysis_selector = {
-            "linear": self._linear_analysis,
-            "nonlinear": self._non_linear_analysis
+            "linear": self._linear_analysis_c,
+            "nonlinear": self._non_linear_analysis_c
         }
 
         top_signals = Counter(chain.from_iterable([r.sig_names for r in self.RECORDS])).most_common()
@@ -121,7 +127,51 @@ class Case():
             return
         analysis_selector.get(mode)()
         return
-            
+
+    @timeit
+    def _plot_nonlinear(self):
+        titles = ["Entropía Aproximada", "Entropía Muestral", "HFD", "DFA"]
+        keys = ["app_ent", "samp_ent", "hfd", "dfa"]
+        fig, axs = plt.subplots(nrows=len(keys), ncols=1, figsize=(12, 15))
+        fig.suptitle(f"Non Linear Analysis of case {self._case_name}")
+        for k, t, a in zip(keys, titles, axs):
+            local_max = 0
+            for seg in [r.N_LINEAR[k] for r in self.RECORDS]:
+                x = np.arange(len(seg)) + local_max
+                a.plot(x, seg)
+                local_max = np.max(x) + 1
+            a.set_title(t)
+            a.autoscale(enable=True, axis='x', tight=True)
+        plt.tight_layout()
+        plt.show()
+    
+    @timeit
+    def _plot_linear(self):
+        titles = ["Media", "Varianza", "Asimetría", "Curtosis"]
+        keys = ["means", "var", "skewness", "kurtosis"]
+        fig, axs = plt.subplots(nrows=len(keys), ncols=1, figsize=(12, 15))
+        fig.suptitle(f"Linear Analysis of case {self._case_name}")
+        for k, t, a in zip(keys, titles, axs):
+            local_max = 0
+            for seg in [r.N_LINEAR[k] for r in self.RECORDS]:
+                x = np.arange(len(seg)) + local_max
+                a.plot(x, seg)
+                local_max = np.max(x) + 1
+            a.set_title(t)
+            a.autoscale(enable=True, axis='x', tight=True)
+        plt.tight_layout()
+        plt.show()
+        
+    @timeit
+    def plotProcess(self, mode="full"):
+        if mode == "full":
+            self._plot_nonlinear()
+            self._plot_linear()
+        elif mode == "nonlinear":
+            self._plot_nonlinear()
+        elif mode == "linear":
+            self._plot_linear()
+        return
 
 
 class CaseIterator:
@@ -169,7 +219,8 @@ class Record():
         reco = wfdb.rdrecord(str(self.record_dir))
         return reco.p_signal
 
-    def _linear_analysis(self, signal: str):
+    @timeit
+    def _linear_analysis_r(self, signal: str):
         if self.rr is None:
             # get RR
             raw_signal = self[signal]
@@ -185,7 +236,8 @@ class Record():
         }
         return
     
-    def _non_linear_analysis(self, signal: str):
+    @timeit
+    def _non_linear_analysis_r(self, signal: str):
         if self.rr is  None:
             # get RR
             raw_signal = self[signal]
@@ -198,9 +250,6 @@ class Record():
             "dfa": d
         }
         return
-        
-        
-
 
     def plot(self):
         fig, axs = plt.subplots(self.n_sig, 1)
@@ -218,7 +267,8 @@ def get_peaks(raw_signal: np.ndarray, fs: int) -> np.ndarray:
     MAX_BPM = 220
     raw_peaks, _ = find_peaks(raw_signal, distance=int((60/MAX_BPM)/(1/fs)))
     med_peaks = processing.correct_peaks(raw_signal, raw_peaks, 30, 35, peak_dir='up')
-    wel_peaks = processing.correct_peaks(raw_signal, med_peaks, 30, 35, peak_dir='up')
+    # print("med_peaks: ", med_peaks[:10])
+    wel_peaks = processing.correct_peaks(raw_signal, med_peaks, 30, 35, peak_dir='up') if med_peaks is not [] else raw_peaks
     return wel_peaks[~np.isnan(wel_peaks)]
 
 
