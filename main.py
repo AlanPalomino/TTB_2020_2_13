@@ -154,6 +154,8 @@ def plot_NL_metrics(DataBases, techniques, conditions, columns):
     
 plot_NL_metrics(cases, techniques, conditions, columns)
 # %%
+
+# Ploteo de Distribuciones NL
 from TT_utilities import distribution_NL
 
 
