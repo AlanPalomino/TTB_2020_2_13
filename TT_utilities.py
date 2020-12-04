@@ -356,56 +356,95 @@ def add_nonlinear(row: pd.Series, mo_config: dict=_nonm_config):
     return row
 
 
-class DataPlots:
-    #================ Custom Poincaré plot
-    """
-    Generación de las gráficas de ventaneo y distribuciones
-    """
 
-    def distribution_cases(db, caso):
-        caso = str(caso)
-        moment =['M1','M2','M3','M4','CV']
-        m_label =['Media','Varianza','Skewsness','Curtosis','Coeficiente de Variación ']
-        for idx in range(len(moment)):
+def distribution_cases(db, caso):
+    caso = str(caso)
+    moment =['M1','M2','M3','M4','CV']
+    m_label =['Media','Varianza','Skewsness','Curtosis','Coeficiente de Variación ']
+    for idx in range(len(moment)):
             
-            title = 'Distribución de ' + m_label[idx] +' en Casos de ' + caso
-            xlab = 'Valor de '+ m_label[idx]
-            plt.figure(figsize=(10,7), dpi= 100)
-            plt.gca().set(title=title, ylabel='Frecuencia',xlabel=xlab)
-            for i in range(len(db.index)):
+        title = 'Distribución de ' + m_label[idx] +' en Casos de ' + caso
+        xlab = 'Valor de '+ m_label[idx]
+        plt.figure(figsize=(10,7), dpi= 100)
+        plt.gca().set(title=title, ylabel='Frecuencia',xlabel=xlab)
+        for i in range(len(db.index)):
 
-                ms = db.iloc[i][moment[idx]]
-                #x_min =np.min(ms,axis=0)
-                #x_max =np.max(ms,axis=0)
+            ms = db.iloc[i][moment[idx]]
                 
-                lab = db.iloc[i]['record']
-                # Plot Settings
-                kwargs = dict(hist_kws={'alpha':.6}, kde_kws={'linewidth':2})
-                sns.distplot(ms, label= lab ,rug=False, hist=False,**kwargs)
+            lab = db.iloc[i]['record']
+            # Plot Settings
+            kwargs = dict(hist_kws={'alpha':.6}, kde_kws={'linewidth':2})
+            sns.distplot(ms, label= lab ,rug=False, hist=False,**kwargs)
                 
-                #X_axis limits
-                #x_min = int(np.min(ms)) + 10
-                #x_max = int(np.max(ms))+10
-                #plt.xlim(x_min,x_max)
-                #lims = plt.gca().get_xlim()
-                #i = np.where( (ms > lims[0]) &  (ms < lims[1]) )[0]
-                #plt.gca().set_xlim( ms[i].min(), ms[i].max() )
-                plt.autoscale(enable=True, axis='y', tight=True)
-            #show()
-            plt.autoscale()
-            plt.legend()
+            #X_axis limits
+            #x_min = int(np.min(ms)) + 10
+            #x_max = int(np.max(ms))+10
+            #plt.xlim(x_min,x_max)
+            #lims = plt.gca().get_xlim()
+            #i = np.where( (ms > lims[0]) &  (ms < lims[1]) )[0]
+            #plt.gca().set_xlim( ms[i].min(), ms[i].max() )
+            plt.autoscale(enable=True, axis='y', tight=True)
+        #show()
+        plt.autoscale()
+        plt.legend()
     
-    def get_all_stats(data, measure):
-        """
-        DESCRIPCIÓN ESTADISTICA DE TODOS LOS DATOS EN measure
-        """
-        SERIES = list()
-        for condition in data["conditon"].unique():
-            CASES = data[(data["conditon"] == condition) & (data["length"] > 5000)]
-            if len(CASES) == 0:
-                continue
-            SERIES.append(CASES[measure].apply(pd.Series).stack().describe().to_frame(name=condition))
-        return pd.concat(SERIES, axis=1).round(5)
+def get_all_stats(data, measure):
+    """
+    DESCRIPCIÓN ESTADISTICA DE TODOS LOS DATOS EN measure
+    """
+    SERIES = list()
+    for condition in data["conditon"].unique():
+        CASES = data[(data["conditon"] == condition) & (data["length"] > 5000)]
+        if len(CASES) == 0:
+            continue
+        SERIES.append(CASES[measure].apply(pd.Series).stack().describe().to_frame(name=condition))
+    return pd.concat(SERIES, axis=1).round(5)
+
+def distribution_NL(db, caso):
+    caso = str(caso)
+    moment =['AppEn','SampEn','HFD','DFA','SD_ratio']
+    m_label =['Ent_Aprox','Ent_Muestra','Higuchi','DFA','R= SD1/SD2']
+    for idx in range(len(moment)):
+            
+        title = 'Distribución de ' + m_label[idx] +' en Casos de ' + caso
+        xlab = 'Valor de '+ m_label[idx]
+        plt.figure(figsize=(10,7), dpi= 100)
+        plt.gca().set(title=title, ylabel='Coeficiente',xlabel=xlab)
+        for i in range(len(db.index)):
+
+            ms = db.iloc[i][moment[idx]]
+            #x_min =np.min(ms,axis=0)
+            #x_max =np.max(ms,axis=0)
+                
+            lab = db.iloc[i]['record']
+            # Plot Settings
+            kwargs = dict(hist_kws={'alpha':.6}, kde_kws={'linewidth':2})
+            sns.distplot(ms, label= lab ,rug=False, hist=False,**kwargs)
+                
+            #X_axis limits
+            #x_min = int(np.min(ms)) + 10
+            #x_max = int(np.max(ms))+10
+            #plt.xlim(x_min,x_max)
+            #lims = plt.gca().get_xlim()
+            #i = np.where( (ms > lims[0]) &  (ms < lims[1]) )[0]
+            #plt.gca().set_xlim( ms[i].min(), ms[i].max() )
+            plt.autoscale(enable=True, axis='y', tight=True)
+        #show()
+        plt.autoscale()
+        plt.legend()
+    
+def get_allNL_stats(data, measure):
+    """
+    DESCRIPCIÓN ESTADISTICA DE TODOS LOS DATOS EN measure
+    """
+    SERIES = list()
+    for condition in data["conditon"].unique():
+        CASES = data[(data["conditon"] == condition) & (data["length"] > 5000)]
+        if len(CASES) == 0:
+            continue
+        SERIES.append(CASES[measure].apply(pd.Series).stack().describe().to_frame(name=condition))
+    return pd.concat(SERIES, axis=1).round(5)
+
 # %%
 def RunAnalysis():
     #ks_test = stats.kstest()
