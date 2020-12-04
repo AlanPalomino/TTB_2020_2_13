@@ -29,7 +29,7 @@ def timeit(func):
         s_time = time.time()
         r = func(*args, **kwargs)
         e_time = time.time()
-        print(f"Function {func.__name__} execution time: {e_time - s_time}")
+        print(f"Function {func.__name__} execution time: {e_time - s_time:.2f}'s")
         return r
     return timed_func
 
@@ -93,14 +93,14 @@ class Case():
     @timeit
     def _linear_analysis_c(self):
         for record in self.RECORDS:
-            record._linear_analysis_r(self._main_signal)
+            if record not in self.l_sig and record._linear_analysis_r(self._main_signal):
+                self.l_sig.append(record)
 
     @timeit
     def _non_linear_analysis_c(self):
         for record in self.RECORDS:
-            v = record._non_linear_analysis_r(self._main_signal)
-            if v:
-                self.nl_sig.append()
+            if record not in self.nl_sig and record._non_linear_analysis_r(self._main_signal):
+                self.nl_sig.append(record)
 
     def process(self, mode: str="nonlinear"):
         def run_all(d: dict):
@@ -136,7 +136,7 @@ class Case():
         fig.suptitle(f"Non Linear Analysis of case {self._case_name}")
         for k, t, a in zip(keys, titles, axs):
             local_max = 0
-            for seg in [r.N_LINEAR[k] for r in self.RECORDS]:
+            for seg in [r.N_LINEAR[k] for r in self.nl_sig]:
                 x = np.arange(len(seg)) + local_max
                 a.plot(x, seg)
                 local_max = np.max(x) + 1
@@ -153,7 +153,7 @@ class Case():
         fig.suptitle(f"Linear Analysis of case {self._case_name}")
         for k, t, a in zip(keys, titles, axs):
             local_max = 0
-            for seg in [r.N_LINEAR[k] for r in self.RECORDS]:
+            for seg in [r.N_LINEAR[k] for r in self.l_sig]:
                 x = np.arange(len(seg)) + local_max
                 a.plot(x, seg)
                 local_max = np.max(x) + 1
@@ -225,8 +225,9 @@ class Record():
             # get RR
             raw_signal = self[signal]
             self.rr = np.diff(get_peaks(raw_signal, self.fs))
-        print("raw: ", raw_signal[:10])
-        print("rr: ", self.rr[:10])
+            if len(self.rr) == 0:
+                return 
+        print(f"Record {self.name} rr has length of {len(self.rr)}")
         m, v, s, k = linearWindowing(self.rr, w_len=1024, over=0.95)
         self.LINEAR = {
             "means": m,
@@ -234,7 +235,7 @@ class Record():
             "skewness": s,
             "kurtosis": k
         }
-        return
+        return True
     
     @timeit
     def _non_linear_analysis_r(self, signal: str):
@@ -242,6 +243,9 @@ class Record():
             # get RR
             raw_signal = self[signal]
             self.rr = np.diff(get_peaks(raw_signal, self.fs))
+            if len(self.rr) < 2048*1.5:
+                return False
+        print(f"Record {self.name} rr has length of {len(self.rr)}")
         a, s, h, d = nonLinearWindowing(self.rr, w_len=2048, over=0.95)
         self.N_LINEAR = {
             "app_ent": a,
@@ -249,7 +253,7 @@ class Record():
             "hfd": h,
             "dfa": d
         }
-        return
+        return True
 
     def plot(self):
         fig, axs = plt.subplots(self.n_sig, 1)
