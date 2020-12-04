@@ -525,13 +525,15 @@ def get_all_stats(data, measure):
         SERIES.append(CASES[measure].apply(pd.Series).stack().describe().to_frame(name=condition))
     return pd.concat(SERIES, axis=1).round(5)
 
-def distribution_NL(db, caso, histo=False):
+def distribution_NL(db, caso, area=False):
     caso = str(caso)
     moment =['AppEn','SampEn','HFD','DFA','SD_ratio']
     m_label =['Ent_Aprox','Ent_Muestra','Higuchi','DFA','R= SD1/SD2']
+    path = '/imagenes/'
     for idx in range(len(moment)):
             
         title = 'Distribución de ' + m_label[idx] +' en Casos de ' + caso
+        figname = m_label[idx]+"_"+caso+'.png'
         xlab = 'Valor de '+ m_label[idx]
         plt.figure(figsize=(10,7), dpi= 100)
         plt.gca().set(title=title, ylabel='Coeficiente',xlabel=xlab)
@@ -544,7 +546,7 @@ def distribution_NL(db, caso, histo=False):
             lab = db.iloc[i]['record']
             # Plot Settings
             kwargs = dict(hist_kws={'alpha':.6}, kde_kws={'linewidth':2})
-            if histo == True:
+            if area == True:
                 sns.distplot(ms, label= lab ,rug=False, hist=True,**kwargs)
                 
                 #X_axis limits
@@ -570,6 +572,7 @@ def distribution_NL(db, caso, histo=False):
         #show()
         plt.autoscale()
         plt.legend()
+        plt.savefig(path +figname )
     
 def get_allNL_stats(data, measure):
     """
