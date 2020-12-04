@@ -24,11 +24,14 @@ import re
 
 # ================= Funciones y Definiciones ====================== #
 
-def timeit(func, *args, **kwargs):
-    s_time = time.time()
-    func(*args, **kwargs)
-    e_time = time.time()
-    print(f"Function {func.__name__} execution time: {e_time - s_time}")
+def timeit(func):
+    def timed_func(*args, **kwargs):
+        s_time = time.time()
+        r = func(*args, **kwargs)
+        e_time = time.time()
+        print(f"Function {func.__name__} execution time: {e_time - s_time}")
+        return r
+    return timed_func
 
 
 # ================= Importando Bases de Datos
@@ -87,11 +90,11 @@ class Case():
 
     def _linear_analysis(self):
         for record in self.RECORDS:
-            record._linear_analysis(self.main_signal)
+            record._linear_analysis(self._main_signal)
 
     def _non_linear_analysis(self):
         for record in self.RECORDS:
-            record._non_linear_analysis(self.main_signal)
+            record._non_linear_analysis(self._main_signal)
 
     def process(self, mode: str="nonlinear"):
         def run_all(d: dict):
@@ -99,8 +102,8 @@ class Case():
             return
 
         analysis_selector = {
-            "linear": self._linear_analysis(),
-            "nonlinear": self._non_linear_analysis()
+            "linear": self._linear_analysis,
+            "nonlinear": self._non_linear_analysis
         }
 
         top_signals = Counter(chain.from_iterable([r.sig_names for r in self.RECORDS])).most_common()
@@ -113,8 +116,10 @@ class Case():
         else:
             print(f"> CASE {self._case_name} Has no valid signal for processing.")
             return
-        
-        analysis_selector.get(mode, default=run_all(analysis_selector))
+        if mode == "full":
+            run_all(analysis_selector)
+            return
+        analysis_selector.get(mode)()
         return
             
 
@@ -165,10 +170,12 @@ class Record():
         return reco.p_signal
 
     def _linear_analysis(self, signal: str):
-        if not self.rr:
+        if self.rr is None:
             # get RR
             raw_signal = self[signal]
-            self.rr = raw_signal
+            self.rr = np.diff(get_peaks(raw_signal, self.fs))
+        print("raw: ", raw_signal[:10])
+        print("rr: ", self.rr[:10])
         m, v, s, k = linearWindowing(self.rr, w_len=1024, over=0.95)
         self.LINEAR = {
             "means": m,
@@ -179,10 +186,10 @@ class Record():
         return
     
     def _non_linear_analysis(self, signal: str):
-        if not self.rr:
+        if self.rr is  None:
             # get RR
             raw_signal = self[signal]
-            self.rr = raw_signal
+            self.rr = np.diff(get_peaks(raw_signal, self.fs))
         a, s, h, d = nonLinearWindowing(self.rr, w_len=2048, over=0.95)
         self.N_LINEAR = {
             "app_ent": a,
@@ -212,7 +219,7 @@ def get_peaks(raw_signal: np.ndarray, fs: int) -> np.ndarray:
     raw_peaks, _ = find_peaks(raw_signal, distance=int((60/MAX_BPM)/(1/fs)))
     med_peaks = processing.correct_peaks(raw_signal, raw_peaks, 30, 35, peak_dir='up')
     wel_peaks = processing.correct_peaks(raw_signal, med_peaks, 30, 35, peak_dir='up')
-    return wel_peaks
+    return wel_peaks[~np.isnan(wel_peaks)]
 
 
 # ================= Ventaneo de señales
