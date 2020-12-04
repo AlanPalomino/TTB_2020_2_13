@@ -88,10 +88,12 @@ class Case():
             Record(path, self._case_name)
         )
 
+    @timeit
     def _linear_analysis(self):
         for record in self.RECORDS:
             record._linear_analysis(self._main_signal)
 
+    @timeit
     def _non_linear_analysis(self):
         for record in self.RECORDS:
             record._non_linear_analysis(self._main_signal)
@@ -121,7 +123,51 @@ class Case():
             return
         analysis_selector.get(mode)()
         return
-            
+
+    @timeit
+    def _plot_nonlinear():
+        titles = ["Entropía Aproximada", "Entropía Muestral", "HFD", "DFA"]
+        keys = ["app_ent", "samp_ent", "hfd", "dfa"]
+        fig, axs = plt.subplots(nrows=1, ncols=len(keys), figsize=(12, 15))
+        fig.suptitle(f"Non Linear Analysis of case {self._case_name}")
+        for k, t, a in zip(keys, titles, axs):
+            local_max = 0
+            for seg in [r.N_LINEAR[k] for r in self.RECORDS]:
+                x = np.arange(len(seg)) + local_max
+                a.plot(x, seg)
+                local_max = np.max(x) + 1
+            a.set_title(t)
+            a.autoscale(enable=True, axis='x', tight=True)
+        plt.tight_layout()
+        plt.show()
+    
+    @timeit
+    def _plot_linear():
+        titles = ["Media", "Varianza", "Asimetría", "Curtosis"]
+        keys = ["means", "var", "skewness", "kurtosis"]
+        fig, axs = plt.subplots(nrows=1, ncols=len(keys), figsize=(12, 15))
+        fig.suptitle(f"Linear Analysis of case {self._case_name}")
+        for k, t, a in zip(keys, titles, axs):
+            local_max = 0
+            for seg in [r.N_LINEAR[k] for r in self.RECORDS]:
+                x = np.arange(len(seg)) + local_max
+                a.plot(x, seg)
+                local_max = np.max(x) + 1
+            a.set_title(t)
+            a.autoscale(enable=True, axis='x', tight=True)
+        plt.tight_layout()
+        plt.show()
+        
+
+    def plot(mode="full"):
+        if mode == "full":
+            self._plot_nonlinear()
+            self._plot_linear()
+        elif mode == "nonlinear":
+            self._plot_nonlinear()
+        elif mode == "linear":
+            self._plot_linear()
+        return
 
 
 class CaseIterator:
@@ -198,9 +244,6 @@ class Record():
             "dfa": d
         }
         return
-        
-        
-
 
     def plot(self):
         fig, axs = plt.subplots(self.n_sig, 1)
@@ -218,7 +261,7 @@ def get_peaks(raw_signal: np.ndarray, fs: int) -> np.ndarray:
     MAX_BPM = 220
     raw_peaks, _ = find_peaks(raw_signal, distance=int((60/MAX_BPM)/(1/fs)))
     med_peaks = processing.correct_peaks(raw_signal, raw_peaks, 30, 35, peak_dir='up')
-    wel_peaks = processing.correct_peaks(raw_signal, med_peaks, 30, 35, peak_dir='up')
+    wel_peaks = processing.correct_peaks(raw_signal, med_peaks, 30, 35, peak_dir='up') if med_peaks is not [] else raw_peaks
     return wel_peaks[~np.isnan(wel_peaks)]
 
 
