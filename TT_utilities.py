@@ -4,10 +4,13 @@
 # ===================== Librerias Utilizadas ====================== #
 from biosppy.utils import ReturnTuple
 from matplotlib import pyplot as plt
+import matplotlib as mpl
 from scipy.signal import find_peaks
 from scipy.stats import stats
+from collections import Counter
 import pyhrv.nonlinear as nl
 from wfdb import processing
+from itertools import chain
 from pathlib import Path
 import seaborn as sns
 import pandas as pd
@@ -21,11 +24,14 @@ import re
 
 # ================= Funciones y Definiciones ====================== #
 
-def timeit(func, *args, **kwargs):
-    s_time = time.time()
-    func(*args, **kwargs)
-    e_time = time.time()
-    print(f"Function {func.__name__} execution time: {e_time - s_time}")
+def timeit(func):
+    def timed_func(*args, **kwargs):
+        s_time = time.time()
+        r = func(*args, **kwargs)
+        e_time = time.time()
+        print(f"Function {func.__name__} execution time: {e_time - s_time}")
+        return r
+    return timed_func
 
 
 # ================= Importando Bases de Datos
@@ -82,6 +88,41 @@ class Case():
             Record(path, self._case_name)
         )
 
+    def _linear_analysis(self):
+        for record in self.RECORDS:
+            record._linear_analysis(self._main_signal)
+
+    def _non_linear_analysis(self):
+        for record in self.RECORDS:
+            record._non_linear_analysis(self._main_signal)
+
+    def process(self, mode: str="nonlinear"):
+        def run_all(d: dict):
+            [v() for k, v in d.items() if k != "full"]
+            return
+
+        analysis_selector = {
+            "linear": self._linear_analysis,
+            "nonlinear": self._non_linear_analysis
+        }
+
+        top_signals = Counter(chain.from_iterable([r.sig_names for r in self.RECORDS])).most_common()
+        for s, c in top_signals:
+            if s in ["APB", "PLETH R", "RESP"]:
+                continue
+            self._main_signal = s
+            print(f" > Optimal signal found is '{s}', present in {c}/{len(self)}")
+            break
+        else:
+            print(f"> CASE {self._case_name} Has no valid signal for processing.")
+            return
+        if mode == "full":
+            run_all(analysis_selector)
+            return
+        analysis_selector.get(mode)()
+        return
+            
+
 
 class CaseIterator:
     """Iterator class for Case object"""
@@ -111,6 +152,7 @@ class Record():
         self.n_sig = reco.n_sig
         self.sig_names = reco.sig_name
         self.units = reco.units
+        self.rr = None
 
     def __str__(self):
         return f"\t Record: {self.name}, Length:{self.slen}, \t# of signals: {self.n_sig} -> {self.sig_names}"
@@ -126,6 +168,39 @@ class Record():
     def _get_signals(self):
         reco = wfdb.rdrecord(str(self.record_dir))
         return reco.p_signal
+
+    def _linear_analysis(self, signal: str):
+        if self.rr is None:
+            # get RR
+            raw_signal = self[signal]
+            self.rr = np.diff(get_peaks(raw_signal, self.fs))
+        print("raw: ", raw_signal[:10])
+        print("rr: ", self.rr[:10])
+        m, v, s, k = linearWindowing(self.rr, w_len=1024, over=0.95)
+        self.LINEAR = {
+            "means": m,
+            "var": v,
+            "skewness": s,
+            "kurtosis": k
+        }
+        return
+    
+    def _non_linear_analysis(self, signal: str):
+        if self.rr is  None:
+            # get RR
+            raw_signal = self[signal]
+            self.rr = np.diff(get_peaks(raw_signal, self.fs))
+        a, s, h, d = nonLinearWindowing(self.rr, w_len=2048, over=0.95)
+        self.N_LINEAR = {
+            "app_ent": a,
+            "samp_ent": s,
+            "hfd": h,
+            "dfa": d
+        }
+        return
+        
+        
+
 
     def plot(self):
         fig, axs = plt.subplots(self.n_sig, 1)
@@ -144,7 +219,7 @@ def get_peaks(raw_signal: np.ndarray, fs: int) -> np.ndarray:
     raw_peaks, _ = find_peaks(raw_signal, distance=int((60/MAX_BPM)/(1/fs)))
     med_peaks = processing.correct_peaks(raw_signal, raw_peaks, 30, 35, peak_dir='up')
     wel_peaks = processing.correct_peaks(raw_signal, med_peaks, 30, 35, peak_dir='up')
-    return wel_peaks
+    return wel_peaks[~np.isnan(wel_peaks)]
 
 
 # ================= Ventaneo de señales
@@ -236,9 +311,9 @@ def poincarePlot(nni=None, rpeaks=None, show=True, figsize=None, ellipse=True, v
 
             # Draw poincaré ellipse
         if ellipse:
-            ellipse_ = plt.patches.Ellipse((nn_mean, nn_mean), sd1 * 2, sd2 * 2, angle=-45, fc='k', zorder=1)
+            ellipse_ = mpl.patches.Ellipse((nn_mean, nn_mean), sd1 * 2, sd2 * 2, angle=-45, fc='k', zorder=1)
             ax.add_artist(ellipse_)
-            ellipse_ = plt.patches.Ellipse((nn_mean, nn_mean), sd1 * 2 - 1, sd2 * 2 - 1, angle=-45, fc='lightyellow', zorder=1)
+            ellipse_ = mpl.patches.Ellipse((nn_mean, nn_mean), sd1 * 2 - 1, sd2 * 2 - 1, angle=-45, fc='lightyellow', zorder=1)
             ax.add_artist(ellipse_)
 
         # Add poincaré vectors (SD1 & SD2)
