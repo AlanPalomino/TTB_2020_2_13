@@ -572,7 +572,7 @@ def distribution_NL(db, caso, area=False):
         #show()
         plt.autoscale()
         plt.legend()
-        plt.savefig(path +figname )
+        plt.savefig(path + figname )
     
 def get_allNL_stats(data, measure):
     """
@@ -586,6 +586,45 @@ def get_allNL_stats(data, measure):
         SERIES.append(CASES[measure].apply(pd.Series).stack().describe().to_frame(name=condition))
     return pd.concat(SERIES, axis=1).round(5)
 
+
+def get_max(DF, col):
+    return np.max([np.max(DF[col][i]) for i in DF.index if len(DF[col][i]) > 0])
+
+def get_min(DF, col):
+    return np.min([np.min(DF[col][i]) for i in DF.index if len(DF[col][i]) > 0])
+
+def plot_NL_metrics(DataBases, techniques, conditions, columns):
+    """
+    docstring
+    """
+    for idx, title, col in zip([1, 2, 3, 4, 5], techniques, columns):
+        figure, axs = plt.subplots(3, 1, figsize=(8, 10))
+        figure.suptitle(title, y=1.01)
+        
+        top = np.max([get_max(c, col) for c in cases])
+        bot = np.min([get_min(c, col) for c in cases])
+        
+        axs[0].set_title(conditions[0])
+        for i in range(len(cases[0])):
+            axs[0].plot(cases[0].iloc[i][col])
+        axs[0].autoscale(enable=True, axis='x', tight=True)
+        axs[0].set_ylim(bottom=bot, top=top)
+
+        axs[1].set_title(conditions[1])
+        for i in range(len(cases[1])):
+            axs[1].plot(cases[1].iloc[i][col])
+        axs[1].autoscale(enable=True, axis='x', tight=True)
+        axs[1].set_ylim(bottom=bot, top=top)
+
+        axs[2].set_title(conditions[2])
+        for i in range(len(cases[2])):
+            axs[2].plot(cases[2].iloc[i][col])
+        axs[2].autoscale(enable=True, axis='x', tight=True)
+        axs[2].set_ylim(bottom=bot, top=top)
+
+        axs[-1].set_xlabel(f"Figura {idx}")
+        plt.tight_layout()
+        plt.show()
 # %%
 def RunAnalysis():
     #ks_test = stats.kstest()
