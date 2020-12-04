@@ -16,6 +16,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot as plt
 from matplotlib import gridspec
 from pprint import pprint 
+from scipy import stats
 import entropy as tpy
 import pandas as pd
 import numpy as np
@@ -104,7 +105,7 @@ print(" - ".join(CHF_CASES_NL.columns))
 print(" - ".join(HC_CASES_NL.columns))
 
 # %%
-AF_CASES_NL.head()
+HC_CASES_NL.head()
 # %%
 
 def get_max(DF, col):
@@ -153,4 +154,7 @@ def plot_NL_metrics(DataBases, techniques, conditions, columns):
     
 
 # %%
-from TT_utilities import add_moments,add_nonlinear
+from TT_utilities import distribution_NL
+
+distribution_NL(HC_CASES_NL, 'Grupo Sano')
+# %%

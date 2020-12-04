@@ -529,7 +529,7 @@ def get_all_stats(data, measure):
         SERIES.append(CASES[measure].apply(pd.Series).stack().describe().to_frame(name=condition))
     return pd.concat(SERIES, axis=1).round(5)
 
-def distribution_NL(db, caso):
+def distribution_NL(db, caso, histo=False):
     caso = str(caso)
     moment =['AppEn','SampEn','HFD','DFA','SD_ratio']
     m_label =['Ent_Aprox','Ent_Muestra','Higuchi','DFA','R= SD1/SD2']
@@ -548,16 +548,29 @@ def distribution_NL(db, caso):
             lab = db.iloc[i]['record']
             # Plot Settings
             kwargs = dict(hist_kws={'alpha':.6}, kde_kws={'linewidth':2})
-            sns.distplot(ms, label= lab ,rug=False, hist=False,**kwargs)
+            if histo == True:
+                sns.distplot(ms, label= lab ,rug=False, hist=True,**kwargs)
                 
-            #X_axis limits
-            #x_min = int(np.min(ms)) + 10
-            #x_max = int(np.max(ms))+10
-            #plt.xlim(x_min,x_max)
-            #lims = plt.gca().get_xlim()
-            #i = np.where( (ms > lims[0]) &  (ms < lims[1]) )[0]
-            #plt.gca().set_xlim( ms[i].min(), ms[i].max() )
-            plt.autoscale(enable=True, axis='y', tight=True)
+                #X_axis limits
+                #x_min = int(np.min(ms)) + 10
+                #x_max = int(np.max(ms))+10
+                #plt.xlim(x_min,x_max)
+                #lims = plt.gca().get_xlim()
+                #i = np.where( (ms > lims[0]) &  (ms < lims[1]) )[0]
+                #plt.gca().set_xlim( ms[i].min(), ms[i].max() )
+                plt.autoscale(enable=True, axis='y', tight=True)
+            else:
+                sns.distplot(ms, label= lab ,rug=False, hist=False,**kwargs)
+                    
+                #X_axis limits
+                #x_min = int(np.min(ms)) + 10
+                #x_max = int(np.max(ms))+10
+                #plt.xlim(x_min,x_max)
+                #lims = plt.gca().get_xlim()
+                #i = np.where( (ms > lims[0]) &  (ms < lims[1]) )[0]
+                #plt.gca().set_xlim( ms[i].min(), ms[i].max() )
+                plt.autoscale(enable=True, axis='y', tight=True)
+            
         #show()
         plt.autoscale()
         plt.legend()
