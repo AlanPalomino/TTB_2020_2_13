@@ -132,9 +132,30 @@ for idx in range(len(cases)):
 #distribution_NL(HC_CASES_NL, 'Grupo Sano')
 # %%
 # KS TEST (CONVERTIR EN FUNCIÓN GENERAL Y BORRAR DE MAIN)
-columns = ["AppEn", "SampEn", "DFA", "HFD","SD_ratio"]
+conditions = ["FA", "ICC", "Control"]
+cases = [AF_CASES_NL, CHF_CASES_NL, HC_CASES_NL]
 
-metric = HC_CASES_NL[columns[1]]
-x = metric[0]
-stats.kstest(x, 'norm')
+def KS_Testing(Database, conditions ):
+    """
+    docstring
+    """
+    columns = ["AppEn", "SampEn", "DFA", "HFD","SD_ratio"]
+    ks_test=list()
+    for col,cond in zip([1,2,3,4,5], columns, conditions):
+        metric = Database[columns[col]]
+        for i in range(len(metric)-1):
+            ks_r=stats.ks_2samp(metric[i], metric[i+1], alternative='two-sided', mode='exact')
+            #d_val = ks_r[0]
+            p_val = ks_r[1]
+            
+            if p_val < 0.05:
+                ks_test.append(0)
+            elif p_val > 0.05:
+                ks_test.append(1)
+            prob = np.sum(ks_test)/len(ks_test)
+    print("Porcentaje de Similitud para " + columns[col] +" en " + cond + ": {} %", prob)  
+
+
+for idx in range(len(cases)):
+    KS_Testing(cases[idx], conditions[idx])
 # %%
