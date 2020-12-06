@@ -635,3 +635,22 @@ def RunAnalysis():
     pass
 
 # %%
+def wavelet(signal):
+    #Wavelets coefficients
+    DWTcoeffs = pywt.wavedec(signal,'db6',level=10,mode='symmetric')
+    DWTcoeffs[-1] = np.zeros_like(DWTcoeffs[-1])
+    DWTcoeffs[-2] = np.zeros_like(DWTcoeffs[-2])
+    DWTcoeffs[-3] = np.zeros_like(DWTcoeffs[-3])
+    DWTcoeffs[-4] = np.zeros_like(DWTcoeffs[-4])
+    DWTcoeffs[-5] = np.zeros_like(DWTcoeffs[-5])
+
+    #Signal reconstruction
+    y = pywt.waverec(DWTcoeffs,'db6',mode='symmetric',axis=-1)
+
+    #Plot original vs wavelet
+    plt.figure(figsize=(30, 10))
+    plt.plot(x_data, signal-y, "g")
+    plt.plot(x_data, y, "b-")
+    plt.title("Function: scipy.correct_peaks")
+
+    return y
