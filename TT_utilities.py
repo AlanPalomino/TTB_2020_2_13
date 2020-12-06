@@ -103,6 +103,7 @@ class Case():
                 self.nl_sig.append(record)
 
     def process(self, mode: str="nonlinear"):
+
         def run_all(d: dict):
             [v() for k, v in d.items() if k != "full"]
             return
@@ -225,9 +226,8 @@ class Record():
             # get RR
             raw_signal = self[signal]
             self.rr = np.diff(get_peaks(raw_signal, self.fs))
-            if len(self.rr) == 0:
-                return 
-        print(f"Record {self.name} rr has length of {len(self.rr)}")
+            if len(self.rr) < 2048*3:
+                return False
         m, v, s, k = linearWindowing(self.rr, w_len=1024, over=0.95)
         self.LINEAR = {
             "means": m,
@@ -243,9 +243,8 @@ class Record():
             # get RR
             raw_signal = self[signal]
             self.rr = np.diff(get_peaks(raw_signal, self.fs))
-            if len(self.rr) < 2048*1.5:
+            if len(self.rr) < 2048*3:
                 return False
-        print(f"Record {self.name} rr has length of {len(self.rr)}")
         a, s, h, d = nonLinearWindowing(self.rr, w_len=2048, over=0.95)
         self.N_LINEAR = {
             "app_ent": a,
@@ -270,9 +269,10 @@ class Record():
 def get_peaks(raw_signal: np.ndarray, fs: int) -> np.ndarray:
     MAX_BPM = 220
     raw_peaks, _ = find_peaks(raw_signal, distance=int((60/MAX_BPM)/(1/fs)))
+    print("raw_signal: ", len(raw_signal), "  raw_peaks: ", len(raw_peaks))
     med_peaks = processing.correct_peaks(raw_signal, raw_peaks, 30, 35, peak_dir='up')
     # print("med_peaks: ", med_peaks[:10])
-    wel_peaks = processing.correct_peaks(raw_signal, med_peaks, 30, 35, peak_dir='up') if med_peaks is not [] else raw_peaks
+    wel_peaks = processing.correct_peaks(raw_signal, med_peaks, 30, 35, peak_dir='up') if len(med_peaks) > 0 else raw_peaks
     return wel_peaks[~np.isnan(wel_peaks)]
 
 
