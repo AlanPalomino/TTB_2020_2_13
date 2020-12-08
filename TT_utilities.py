@@ -103,7 +103,7 @@ class Case():
                 self.nl_sig.append(record)
 
     def process(self, mode: str="nonlinear"):
-
+        
         def run_all(d: dict):
             [v() for k, v in d.items() if k != "full"]
             return
@@ -314,10 +314,24 @@ def nonLinearWindowing(rr_signal: np.ndarray, w_len: int, over: float):
     for idx in range(0, len(rr_signal)-w_len, step):
         window_slice = slice(idx, idx+w_len)
         rr_window = rr_signal[window_slice]
-        app_ent.append(entropy.app_entropy(rr_window, order=2, metric='chebyshev'))
-        samp_ent.append(entropy.sample_entropy(rr_window, order=2, metric='chebyshev'))
-        hfd.append(entropy.fractal.higuchi_fd(rr_window, kmax=10))
-        dfa.append(entropy.fractal.detrended_fluctuation(rr_window))
+        
+        with ThreadPoolExecutor() as exec:
+            app_ent.append(exec.submit(
+                entropy.app_entropy,
+                rr_window, order=2, metric='chebyshev'
+            ))
+            samp_ent.append(exec.submit(
+                entropy.sample_entropy,
+                rr_window, order=2, metric='chebyshev'
+            ))
+            hfd.append(exec.submit(
+                entropy.fracta.higuchy_fd,
+                rr_window, kmax=10
+            ))
+            dfa.append(exec.submit(
+                entropy.fractal.detrended_fluctuation,
+                rr_dindow
+            ))
 
     return app_ent, samp_ent, hfd, dfa
 
