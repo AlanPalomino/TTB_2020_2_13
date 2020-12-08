@@ -2,6 +2,7 @@
 # %%
 
 # ===================== Librerias Utilizadas ====================== #
+from concurrent.futures import ThreadPoolExecutor 
 from biosppy.utils import ReturnTuple
 from matplotlib import pyplot as plt
 import matplotlib as mpl
