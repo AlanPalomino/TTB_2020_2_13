@@ -2,7 +2,7 @@
 # %%
 
 # ===================== Librerias Utilizadas ====================== #
-from concurrent.futures import ThreadPoolExecutor 
+from concurrent.futures import ThreadPoolExecutor
 from biosppy.utils import ReturnTuple
 from matplotlib import pyplot as plt
 import matplotlib as mpl
@@ -104,7 +104,7 @@ class Case():
                 self.nl_sig.append(record)
 
     def process(self, mode: str="nonlinear"):
-        
+
         def run_all(d: dict):
             [v() for k, v in d.items() if k != "full"]
             return
@@ -315,7 +315,6 @@ def nonLinearWindowing(rr_signal: np.ndarray, w_len: int, over: float):
     for idx in range(0, len(rr_signal)-w_len, step):
         window_slice = slice(idx, idx+w_len)
         rr_window = rr_signal[window_slice]
-        
         with ThreadPoolExecutor() as exec:
             app_ent.append(exec.submit(
                 entropy.app_entropy,
@@ -323,15 +322,15 @@ def nonLinearWindowing(rr_signal: np.ndarray, w_len: int, over: float):
             ))
             samp_ent.append(exec.submit(
                 entropy.sample_entropy,
-                rr_window, order=2, metric='chebyshev'
+                rr_window, order=2, metric='chebyhsev'
             ))
             hfd.append(exec.submit(
-                entropy.fracta.higuchy_fd,
+                entropy.fracta.higuchi_fd,
                 rr_window, kmax=10
             ))
             dfa.append(exec.submit(
                 entropy.fractal.detrended_fluctuation,
-                rr_dindow
+                rr_window
             ))
 
     return app_ent, samp_ent, hfd, dfa
@@ -500,7 +499,6 @@ def add_nonlinear(row: pd.Series, mo_config: dict=_nonm_config):
     return row
 
 
-
 def distribution_cases(db, caso):
     caso = str(caso)
     moment =['M1','M2','M3','M4','CV']
@@ -650,22 +648,3 @@ def RunAnalysis():
     pass
 
 # %%
-def wavelet(signal):
-    #Wavelets coefficients
-    DWTcoeffs = pywt.wavedec(signal,'db6',level=10,mode='symmetric')
-    DWTcoeffs[-1] = np.zeros_like(DWTcoeffs[-1])
-    DWTcoeffs[-2] = np.zeros_like(DWTcoeffs[-2])
-    DWTcoeffs[-3] = np.zeros_like(DWTcoeffs[-3])
-    DWTcoeffs[-4] = np.zeros_like(DWTcoeffs[-4])
-    DWTcoeffs[-5] = np.zeros_like(DWTcoeffs[-5])
-
-    #Signal reconstruction
-    y = pywt.waverec(DWTcoeffs,'db6',mode='symmetric',axis=-1)
-
-    #Plot original vs wavelet
-    plt.figure(figsize=(30, 10))
-    plt.plot(x_data, signal-y, "g")
-    plt.plot(x_data, y, "b-")
-    plt.title("Function: scipy.correct_peaks")
-
-    return y
