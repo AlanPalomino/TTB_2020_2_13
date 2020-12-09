@@ -2,6 +2,7 @@
 # %%
 
 # ===================== Librerias Utilizadas ====================== #
+from concurrent.futures import ThreadPoolExecutor 
 from biosppy.utils import ReturnTuple
 from matplotlib import pyplot as plt
 import matplotlib as mpl
@@ -103,6 +104,7 @@ class Case():
                 self.nl_sig.append(record)
 
     def process(self, mode: str="nonlinear"):
+        
         def run_all(d: dict):
             [v() for k, v in d.items() if k != "full"]
             return
@@ -225,9 +227,8 @@ class Record():
             # get RR
             raw_signal = self[signal]
             self.rr = np.diff(get_peaks(raw_signal, self.fs))
-            if len(self.rr) == 0:
-                return 
-        print(f"Record {self.name} rr has length of {len(self.rr)}")
+            if len(self.rr) < 2048*3:
+                return False
         m, v, s, k = linearWindowing(self.rr, w_len=1024, over=0.95)
         self.LINEAR = {
             "means": m,
@@ -243,9 +244,8 @@ class Record():
             # get RR
             raw_signal = self[signal]
             self.rr = np.diff(get_peaks(raw_signal, self.fs))
-            if len(self.rr) < 2048*1.5:
+            if len(self.rr) < 2048*3:
                 return False
-        print(f"Record {self.name} rr has length of {len(self.rr)}")
         a, s, h, d = nonLinearWindowing(self.rr, w_len=2048, over=0.95)
         self.N_LINEAR = {
             "app_ent": a,
@@ -270,9 +270,10 @@ class Record():
 def get_peaks(raw_signal: np.ndarray, fs: int) -> np.ndarray:
     MAX_BPM = 220
     raw_peaks, _ = find_peaks(raw_signal, distance=int((60/MAX_BPM)/(1/fs)))
+    print("raw_signal: ", len(raw_signal), "  raw_peaks: ", len(raw_peaks))
     med_peaks = processing.correct_peaks(raw_signal, raw_peaks, 30, 35, peak_dir='up')
     # print("med_peaks: ", med_peaks[:10])
-    wel_peaks = processing.correct_peaks(raw_signal, med_peaks, 30, 35, peak_dir='up') if med_peaks is not [] else raw_peaks
+    wel_peaks = processing.correct_peaks(raw_signal, med_peaks, 30, 35, peak_dir='up') if len(med_peaks) > 0 else raw_peaks
     return wel_peaks[~np.isnan(wel_peaks)]
 
 
@@ -314,10 +315,24 @@ def nonLinearWindowing(rr_signal: np.ndarray, w_len: int, over: float):
     for idx in range(0, len(rr_signal)-w_len, step):
         window_slice = slice(idx, idx+w_len)
         rr_window = rr_signal[window_slice]
-        app_ent.append(entropy.app_entropy(rr_window, order=2, metric='chebyshev'))
-        samp_ent.append(entropy.sample_entropy(rr_window, order=2, metric='chebyshev'))
-        hfd.append(entropy.fractal.higuchi_fd(rr_window, kmax=10))
-        dfa.append(entropy.fractal.detrended_fluctuation(rr_window))
+        
+        with ThreadPoolExecutor() as exec:
+            app_ent.append(exec.submit(
+                entropy.app_entropy,
+                rr_window, order=2, metric='chebyshev'
+            ))
+            samp_ent.append(exec.submit(
+                entropy.sample_entropy,
+                rr_window, order=2, metric='chebyshev'
+            ))
+            hfd.append(exec.submit(
+                entropy.fracta.higuchy_fd,
+                rr_window, kmax=10
+            ))
+            dfa.append(exec.submit(
+                entropy.fractal.detrended_fluctuation,
+                rr_dindow
+            ))
 
     return app_ent, samp_ent, hfd, dfa
 
@@ -635,3 +650,22 @@ def RunAnalysis():
     pass
 
 # %%
+def wavelet(signal):
+    #Wavelets coefficients
+    DWTcoeffs = pywt.wavedec(signal,'db6',level=10,mode='symmetric')
+    DWTcoeffs[-1] = np.zeros_like(DWTcoeffs[-1])
+    DWTcoeffs[-2] = np.zeros_like(DWTcoeffs[-2])
+    DWTcoeffs[-3] = np.zeros_like(DWTcoeffs[-3])
+    DWTcoeffs[-4] = np.zeros_like(DWTcoeffs[-4])
+    DWTcoeffs[-5] = np.zeros_like(DWTcoeffs[-5])
+
+    #Signal reconstruction
+    y = pywt.waverec(DWTcoeffs,'db6',mode='symmetric',axis=-1)
+
+    #Plot original vs wavelet
+    plt.figure(figsize=(30, 10))
+    plt.plot(x_data, signal-y, "g")
+    plt.plot(x_data, y, "b-")
+    plt.title("Function: scipy.correct_peaks")
+
+    return y
