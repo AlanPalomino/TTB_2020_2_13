@@ -135,27 +135,72 @@ for idx in range(len(cases)):
 conditions = ["FA", "ICC", "Control"]
 cases = [AF_CASES_NL, CHF_CASES_NL, HC_CASES_NL]
 
+Database = cases[1]
+condition = conditions[1]
+
+columns = ["AppEn", "SampEn", "DFA", "HFD","SD_ratio"]
+ks_test=list()  
+
+for col in  range(len(columns)):
+    metric = Database[columns[col]]
+    print("Base de datos: ", condition)
+    print("Métrica: ",columns[col])
+    for i in range(len(metric)-1):
+
+        X = np.histogram(np.array(metric.iloc[i]), bins='auto')
+        Y = np.histogram(metric.iloc[i+1], bins='auto')
+
+        #X = np.array(metric.iloc[i])
+        #Y = np.array(metric.iloc[i+1])
+        ks_r = stats.ks_2samp(X[0], Y[0], alternative='two-sided')
+        #d_val = ks_r[0]
+        p_val = ks_r[1]
+            
+        #print("Valor de p: ", p_val)
+        if p_val < 0.05:
+                ks_test.append(0)
+        elif p_val > 0.05:
+                ks_test.append(1)
+
+        prob = (np.sum(ks_test)/len(ks_test))*100
+    print("Porcentaje de Similitud:  {}  %".format(prob)) 
+
+
+# %%
+
+
+"""
+
 def KS_Testing(Database, conditions ):
-    """
-    docstring
-    """
+   
     columns = ["AppEn", "SampEn", "DFA", "HFD","SD_ratio"]
     ks_test=list()
-    for col,cond in zip([1,2,3,4,5], columns, conditions):
+    for col in  range(len(columns)-1):
         metric = Database[columns[col]]
         for i in range(len(metric)-1):
-            ks_r=stats.ks_2samp(metric[i], metric[i+1], alternative='two-sided', mode='exact')
+            X = np.histogram(np.array(metric.iloc[i]), bins='auto')
+            Y = np.histogram(metric.iloc[i+1], bins='auto')
+
+            ks_r = stats.ks_2samp(X[0], Y[0], alternative='two-sided', mode='exact')
             #d_val = ks_r[0]
             p_val = ks_r[1]
-            
+                
             if p_val < 0.05:
                 ks_test.append(0)
             elif p_val > 0.05:
                 ks_test.append(1)
             prob = np.sum(ks_test)/len(ks_test)
-    print("Porcentaje de Similitud para " + columns[col] +" en " + cond + ": {} %", prob)  
+    print("Porcentaje de Similitud para " + columns[col] +" en " + conditon + ": {} %", prob) 
 
+
+
+#KS_Testing(cases[0], conditions[0])  
+
+    
 
 for idx in range(len(cases)):
-    KS_Testing(cases[idx], conditions[idx])
-# %%
+    for cond in range(len(conditions)):
+        condition = conditions[cond]
+        print(condition)
+        KS_Testing(cases[idx], conditions[idx])
+"""
