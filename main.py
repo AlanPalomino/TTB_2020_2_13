@@ -81,28 +81,36 @@ for record_dir in RECORD_DIRS:
 # %%
 #======== Agregando las métricas obtenidas a las Bases 
 print("ACTUALIZANDO DATABASES...")
-#AF_CASES = AF_CASES.apply(add_moments, axis=1)
-#CHF_CASES = CHF_CASES.apply(add_moments, axis=1)
-#HC_CASES = HC_CASES.apply(add_moments, axis=1)
+AF_CASES = AF_CASES.apply(add_moments, axis=1)
+CHF_CASES = CHF_CASES.apply(add_moments, axis=1)
+HC_CASES = HC_CASES.apply(add_moments, axis=1)
 
 AF_CASES_NL = AF_CASES.copy()
 CHF_CASES_NL = CHF_CASES.copy()
 HC_CASES_NL = HC_CASES.copy()
-print("Métricas agregadas:  ")
+print("Métricas Lineales agregadas:  ")
 
 print(" - ".join(AF_CASES.columns))
 print(" - ".join(CHF_CASES.columns))
 print(" - ".join(HC_CASES.columns))
-
+# %%
 print("ACTUALIZANDO DATABASES...")
-AF_CASES_NL = AF_CASES_NL.apply(add_nonlinear, axis=1)
-CHF_CASES_NL = CHF_CASES_NL.apply(add_nonlinear, axis=1)
-HC_CASES_NL = HC_CASES_NL.apply(add_nonlinear, axis=1)
 
-print("Métricas agregadas:  ")
-print(" - ".join(AF_CASES_NL.columns))
-print(" - ".join(CHF_CASES_NL.columns))
-print(" - ".join(HC_CASES_NL.columns))
+AF_CASES = AF_CASES.apply(add_nonlinear, axis=1)
+CHF_CASES = CHF_CASES.apply(add_nonlinear, axis=1)
+HC_CASES = HC_CASES.apply(add_nonlinear, axis=1)
+#AF_CASES_NL = AF_CASES_NL.apply(add_nonlinear, axis=1)
+#CHF_CASES_NL = CHF_CASES_NL.apply(add_nonlinear, axis=1)
+#HC_CASES_NL = HC_CASES_NL.apply(add_nonlinear, axis=1)
+
+print("Métricas No- lineales agregadas:  ")
+print(" - ".join(AF_CASES.columns))
+print(" - ".join(CHF_CASES.columns))
+print(" - ".join(HC_CASES.columns))
+
+#print(" - ".join(AF_CASES_NL.columns))
+#print(" - ".join(CHF_CASES_NL.columns))
+#print(" - ".join(HC_CASES_NL.columns))
 
 # %%
 CHF_CASES_NL
