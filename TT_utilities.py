@@ -618,8 +618,8 @@ def plot_NL_metrics(DataBases, techniques, conditions, columns):
     for idx, title, col in zip([1, 2, 3, 4, 5], techniques, columns):
         figure, axs = plt.subplots(3, 1, figsize=(8, 10))
         figure.suptitle(title, y=1.01)
-        top = np.max([get_max(c, col) for c in DataBases])
-        bot = np.min([get_min(c, col) for c in DataBases])
+        top = np.max([get_max(item, col) for item in DataBases])
+        bot = np.min([get_min(item, col) for item in DataBases])
         
         axs[0].set_title(conditions[0])
         for i in range(len(DataBases[0])):
