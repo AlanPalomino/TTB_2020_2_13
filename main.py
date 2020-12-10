@@ -29,7 +29,7 @@ import re
 
 # ===================== Funciones y Métodos ======================= #
 from TT_utilities import *
-from TT_utilities import add_moments,add_nonlinear
+from TT_utilities import add_moments,add_nonlinear, plot_NL_metrics, distribution_NL
 
 # ================================================================= #
 # %%
@@ -105,9 +105,9 @@ print(" - ".join(CHF_CASES_NL.columns))
 print(" - ".join(HC_CASES_NL.columns))
 
 # %%
-HC_CASES_NL.head()
+CHF_CASES_NL
 # %%
-from TT_utilities import plot_NL_metrics
+
 
 conditions = ["Fibrilación Atrial", "Insuficiencia Cardíaca Congestiva", "Casos Saludables"]
 techniques = ["Entropía aproximada", "Entropía muestral", "Analisis de Fluctuación sin Tendencia (DFA)", "Coeficiente de Higuchi (HFD)","Radio = SD1/SD2"]
@@ -118,7 +118,6 @@ plot_NL_metrics(cases, techniques, conditions, columns)
 # %%
 
 # Ploteo de Distribuciones NL
-from TT_utilities import distribution_NL
 
 
 conditions = ["Fibrilación Atrial", "Insuficiencia Cardíaca Congestiva", "de Control"]
