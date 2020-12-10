@@ -9,6 +9,7 @@ import matplotlib as mpl
 from scipy.signal import find_peaks
 from scipy.stats import stats
 from collections import Counter
+from itertools import wraps
 import pyhrv.nonlinear as nl
 from wfdb import processing
 from itertools import chain
@@ -23,10 +24,19 @@ import time
 import wfdb
 import re
 
+# ====================== Global Values =========================== #
+
+RR_WLEN = 1024
+RR_OVER = 0.95
+RR_STEP = int(RR_WLEN * (1 - RR_OVER))
+RR_WINDOW_THRESHOLD = RR_WLEN * 6   # Mínimo número de datos que requiere un registro rr para ser válido.
+
+
 # ================= Funciones y Definiciones ====================== #
-RR_THRESHOLD = 1024*6
+
 
 def timeit(func):
+    @wraps
     def timed_func(*args, **kwargs):
         s_time = time.time()
         r = func(*args, **kwargs)
@@ -280,19 +290,16 @@ def get_peaks(raw_signal: np.ndarray, fs: int) -> np.ndarray:
 
 # ================= Ventaneo de señales
 
-def linearWindowing(rr_signal: np.ndarray, w_len: int, over: float):
+def linearWindowing(rr_signal: np.ndarray):
     """
     Evaluates rr with linear functions based on a rolling window.
 
     rr_signal   :: RR vector of time in seconds
-    w_len       :: Amount of data points per window analysis
-    over        :: Defines overlapping between windows
     """
     means, var, skew, kurt = list(), list(), list(), list()
-    step = int(w_len*(1-over))
 
-    for idx in range(0, len(rr_signal)-w_len, step):
-        window_slice = slice(idx, idx+w_len)
+    for idx in range(0, len(rr_signal)-RR_WLEN, RR_STEP):
+        window_slice = slice(idx, idx+RR_WLEN)
         ds = stats.describe(rr_signal[window_slice])
         means.append(ds[2])
         var.append(ds[3])
@@ -302,19 +309,16 @@ def linearWindowing(rr_signal: np.ndarray, w_len: int, over: float):
     return means, var, skew, kurt
 
 
-def nonLinearWindowing(rr_signal: np.ndarray, w_len: int, over: float):
+def nonLinearWindowing(rr_signal: np.ndarray):
     """
     Evaluates rr with non-linear functions based on a rolling window.
 
     rr_signal   :: RR vector of time in seconds
-    w_len       :: Amount of data points per window analysis
-    over        :: Defines overlapping between windows
     """
-    app_ent, samp_ent, hfd, dfa = list(), list(), list(), list()
-    step = int(w_len*(1-over))
+    app_ent, samp_ent, hfd, dfa, poin = list(), list(), list(), list(), list()
 
-    for idx in range(0, len(rr_signal)-w_len, step):
-        window_slice = slice(idx, idx+w_len)
+    for idx in range(0, len(rr_signal)-RR_WLEN, RR_STEP):
+        window_slice = slice(idx, idx+RR_WLEN)
         rr_window = rr_signal[window_slice]
         with ThreadPoolExecutor() as exec:
             app_ent.append(exec.submit(
@@ -333,8 +337,31 @@ def nonLinearWindowing(rr_signal: np.ndarray, w_len: int, over: float):
                 entropy.fractal.detrended_fluctuation,
                 rr_window
             ).result())
+            poin.append(exec.submit(
+                poincare_ratio,
+                rr_window
+            ))
 
-    return app_ent, samp_ent, hfd, dfa
+    return app_ent, samp_ent, hfd, dfa, poin
+
+
+def poincare_ratio(rr_window=None, rpeaks=None):
+    """
+    This function just returns the SD ratio for data collection.
+    """
+    # Check input values
+    nn = pyhrv.utils.check_input(nni, rpeaks)
+
+    # Prepare Poincaré data
+    x1 = np.asarray(nn[:-1])
+    x2 = np.asarray(nn[1:])
+
+    # SD1 & SD2 Computation
+    sd1 = np.std(np.subtract(x1, x2) / np.sqrt(2))
+    sd2 = np.std(np.add(x1, x2) / np.sqrt(2))
+
+    # Returns sd ratio
+    return sd2/sd1
 
 
 def poincarePlot(nni=None, rpeaks=None, show=True, figsize=None, ellipse=True, vectors=True, legend=True, marker='o'):
@@ -428,55 +455,31 @@ def poincarePlot(nni=None, rpeaks=None, show=True, figsize=None, ellipse=True, v
     return biosppy.utils.ReturnTuple(args, names)
 
 
-def Poincare_Windowing(rr_signal, w_len, over, mode="sample",plotter=False):
+def Poincare_Windowing(rr_signal, plotter=False):
     """
     rr_signal :: RR vector of time in seconds
-    w_time    :: Defines window time in seconds
-    over      :: Defines overlapping between windows
-    l_thresh  :: Gets lower threshold of window
-    mode      :: Sets mode of windowing;
-                    "sample" - Same sized windows, iterates by sample count.
-                    "time" - Variable sized windows, iterates over time window.
+    plotter   :: Boolean to plot the Poincare output or not.
     """
-        
-    poin_r =list()
 
-    step = int(w_len*(1-over))
-        
-    if mode == "time":
-        time_vec = np.cumsum(rr_signal)
-        l_thresh = time_vec[0]
-        while l_thresh < max(time_vec)-w_len:
-            window = np.where(np.bitwise_and((l_thresh < time_vec), (time_vec < (l_thresh+w_len))))
-            rr_window = RR[window]
-                
-            if plotter == True:
-                poincare_results = nl.poincare(rr_window,show=True,figsize=None,ellipse=True,vectors=True,legend=True)
-                poin_r.append(poincare_results["sd_ratio"])
-            elif plotter == False:
-                poincare_results = poincarePlot(rr_window,show=False)
-                poin_r.append(poincare_results["sd_ratio"])
-            
-        
-            l_thresh += step
+    poin_r = list()
 
-    elif mode == "sample":
-        for rr_window in [rr_signal[i:i+w_len] for i in range(0, len(rr_signal)-w_len, step)]:
-            if plotter == True:
-                poincare_results = nl.poincare(rr_window,show=True,figsize=None,ellipse=True,vectors=True,legend=True)
-                poin_r.append(poincare_results["sd_ratio"])
-            elif plotter == False:
-                poincare_results = poincarePlot(rr_window,show=False)
-                poin_r.append(poincare_results["sd_ratio"])
-            
+    for idx in range(0, len(rr_signal)-RR_WLEN, RR_STEP):
+        window_slice = slice(idx, idx+RR_WLEN)
+        rr_window = rr_signal[window_slice]
+        if plotter == True:
+            poincare_results = nl.poincare(rr_window,show=True,figsize=None,ellipse=True,vectors=True,legend=True)
+            poin_r.append(poincare_results["sd_ratio"])
+        elif plotter == False:
+            poincare_results = poincarePlot(rr_window,show=False)
+            poin_r.append(poincare_results["sd_ratio"])
+
     return poin_r
 
 
 
-_m_config = {"window": 1024, "overlap": 0.95}
-def add_moments(row: pd.Series, mo_config: dict=_m_config):
+def add_moments(row: pd.Series):
     """Applies five moments to Series object"""
-    means, var, skew, kurt = linearWindowing(row.rr, mo_config["window"], mo_config["overlap"])
+    means, var, skew, kurt = linearWindowing(row.rr)
 
     row["M1"] = means
     row["M2"] = var
@@ -486,11 +489,10 @@ def add_moments(row: pd.Series, mo_config: dict=_m_config):
     return row
 
 
-_nonm_config = {"window": 2048, "overlap": 0.95}
-def add_nonlinear(row: pd.Series, mo_config: dict=_nonm_config):
+def add_nonlinear(row: pd.Series):
     """Applies four non-linear equations to Series object"""
-    app_ent, samp_ent, hfd, dfa = nonLinearWindowing(row.rr, mo_config["window"], mo_config["overlap"])
-    poin = Poincare_Windowing(row.rr, mo_config["window"], mo_config["overlap"], mode="sample",plotter=False)
+    app_ent, samp_ent, hfd, dfa, poin = nonLinearWindowing(row.rr)
+    # poin = Poincare_Windowing(row.rr, plotter=False)
 
     row["AppEn"] = app_ent
     row["SampEn"] = samp_ent
