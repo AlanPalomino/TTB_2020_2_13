@@ -24,6 +24,7 @@ import wfdb
 import re
 
 # ================= Funciones y Definiciones ====================== #
+RR_THRESHOLD = 1024*6
 
 def timeit(func):
     def timed_func(*args, **kwargs):
