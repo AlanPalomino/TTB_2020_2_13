@@ -319,19 +319,19 @@ def nonLinearWindowing(rr_signal: np.ndarray, w_len: int, over: float):
             app_ent.append(exec.submit(
                 entropy.app_entropy,
                 rr_window, order=2, metric='chebyshev'
-            ))
+            ).result())
             samp_ent.append(exec.submit(
                 entropy.sample_entropy,
                 rr_window, order=2, metric='chebyhsev'
-            ))
+            ).result())
             hfd.append(exec.submit(
                 entropy.fractal.higuchi_fd,
                 rr_window, kmax=10
-            ))
+            ).result())
             dfa.append(exec.submit(
                 entropy.fractal.detrended_fluctuation,
                 rr_window
-            ))
+            ).result())
 
     return app_ent, samp_ent, hfd, dfa
 
