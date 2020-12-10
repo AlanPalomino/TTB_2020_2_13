@@ -325,7 +325,7 @@ def nonLinearWindowing(rr_signal: np.ndarray, w_len: int, over: float):
                 rr_window, order=2, metric='chebyhsev'
             ))
             hfd.append(exec.submit(
-                entropy.fracta.higuchi_fd,
+                entropy.fractal.higuchi_fd,
                 rr_window, kmax=10
             ))
             dfa.append(exec.submit(
