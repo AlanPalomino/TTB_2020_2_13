@@ -620,25 +620,24 @@ def plot_NL_metrics(DataBases, techniques, conditions, columns):
     for idx, title, col in zip([1, 2, 3, 4, 5], techniques, columns):
         figure, axs = plt.subplots(3, 1, figsize=(8, 10))
         figure.suptitle(title, y=1.01)
-        
-        top = np.max([get_max(c, col) for c in cases])
-        bot = np.min([get_min(c, col) for c in cases])
+        top = np.max([get_max(item, col) for item in DataBases])
+        bot = np.min([get_min(item, col) for item in DataBases])
         
         axs[0].set_title(conditions[0])
-        for i in range(len(cases[0])):
-            axs[0].plot(cases[0].iloc[i][col])
+        for i in range(len(DataBases[0])):
+            axs[0].plot(DataBases[0].iloc[i][col])
         axs[0].autoscale(enable=True, axis='x', tight=True)
         axs[0].set_ylim(bottom=bot, top=top)
 
         axs[1].set_title(conditions[1])
-        for i in range(len(cases[1])):
-            axs[1].plot(cases[1].iloc[i][col])
+        for i in range(len(DataBases[1])):
+            axs[1].plot(DataBases[1].iloc[i][col])
         axs[1].autoscale(enable=True, axis='x', tight=True)
         axs[1].set_ylim(bottom=bot, top=top)
 
         axs[2].set_title(conditions[2])
-        for i in range(len(cases[2])):
-            axs[2].plot(cases[2].iloc[i][col])
+        for i in range(len(DataBases[2])):
+            axs[2].plot(DataBases[2].iloc[i][col])
         axs[2].autoscale(enable=True, axis='x', tight=True)
         axs[2].set_ylim(bottom=bot, top=top)
 
