@@ -141,18 +141,19 @@ for idx in range(len(cases)):
 # %%
 # KS TEST (CONVERTIR EN FUNCIÓN GENERAL Y BORRAR DE MAIN)
 conditions = ["FA", "ICC", "Control"]
-cases = [AF_CASES, CHF_CASES, HC_CASES]
+Databases = [AF_CASES, CHF_CASES, HC_CASES]
 
-def KS_Testing(Database, conditions ):
-    """
-    docstring
-    """
-    columns = ["AppEn", "SampEn", "DFA", "HFD","SD_ratio"]
-    ks_test=list()
-    for col,cond in zip([1,2,3,4,5], columns, conditions):
-        metric = Database[columns[col]]
-        print("Base de datos: ", condition)
-        print("Métrica: ",columns[col])
+
+columns = ["AppEn", "SampEn", "DFA", "HFD","SD_ratio"]
+ks_test=list()
+    
+"""
+for Data,col,cond in zip(Databases,columns, conditions):
+    metric = Data.loc[col]
+    print("Base de datos: ", cond)
+    print("Métrica: ",col)
+
+
         for i in range(len(metric)-1):
 
             X = np.histogram(np.array(metric.iloc[i]), bins='auto')
@@ -173,4 +174,5 @@ def KS_Testing(Database, conditions ):
 
 for idx in range(len(cases)):
     KS_Testing(cases[idx], conditions[idx])
+"""
 # %%
