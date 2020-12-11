@@ -9,7 +9,7 @@ import matplotlib as mpl
 from scipy.signal import find_peaks
 from scipy.stats import stats
 from collections import Counter
-from itertools import wraps
+from functools import wraps
 import pyhrv.nonlinear as nl
 from wfdb import processing
 from itertools import chain
