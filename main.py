@@ -104,7 +104,7 @@ HC_CASES = HC_CASES.apply(add_nonlinear, axis=1)
 #CHF_CASES_NL = CHF_CASES_NL.apply(add_nonlinear, axis=1)
 #HC_CASES_NL = HC_CASES_NL.apply(add_nonlinear, axis=1)
 
-print("Métricas No- lineales agregadas:  ")
+print("Métricas No-lineales agregadas:  ")
 print(" - ".join(AF_CASES.columns))
 print(" - ".join(CHF_CASES.columns))
 print(" - ".join(HC_CASES.columns))
@@ -114,7 +114,7 @@ print(" - ".join(HC_CASES.columns))
 #print(" - ".join(HC_CASES_NL.columns))
 
 # %%
-CHF_CASES_NL
+CHF_CASES
 # %%
 
 
