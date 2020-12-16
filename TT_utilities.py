@@ -649,6 +649,34 @@ def plot_NL_metrics(DataBases, techniques, conditions, columns):
         axs[-1].set_xlabel(f"Figura {idx}")
         plt.tight_layout()
         plt.show()
+
+
+def KS_Testing(Database, conditions ):
+    """
+    docstring
+    """
+    columns = ["AppEn", "SampEn", "DFA", "HFD","SD_ratio"]
+    ks_test=list()
+    for col,cond in zip([1,2,3,4,5], columns, conditions):
+        metric = Database[columns[col]]
+        print("Base de datos: ", condition)
+        print("Métrica: ",columns[col])
+        for i in range(len(metric)-1):
+
+            X = np.histogram(np.array(metric.iloc[i]), bins='auto')
+            Y = np.histogram(metric.iloc[i+1], bins='auto')
+
+            #X = np.array(metric.iloc[i])
+            #Y = np.array(metric.iloc[i+1])
+            ks_r = stats.ks_2samp(X[0], Y[0], alternative='two-sided')
+            p_val = ks_r[1]
+            
+            if p_val < 0.05:
+                ks_test.append(0)
+            elif p_val > 0.05:
+                ks_test.append(1)
+            prob = np.sum(ks_test)/len(ks_test)*100
+    print("Porcentaje de Similitud {} %" .format(prob))  
 # %%
 def RunAnalysis():
     #ks_test = stats.kstest()

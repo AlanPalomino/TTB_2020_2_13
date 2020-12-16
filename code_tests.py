@@ -135,3 +135,14 @@ import pyhrv
 
 rr = np.array(AF_CASES.iloc[0,2])
 # %%
+# Combinaciones
+
+from itertools import combinations 
+
+dists = ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O"]
+
+comb = list(combinations(dists, 2))
+for i in range(len(comb)):
+    pair = comb[i]
+    print("Combina {}  con {}." .format(pair[0],pair[1]))
+# %%
