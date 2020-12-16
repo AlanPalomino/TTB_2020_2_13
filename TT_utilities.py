@@ -9,7 +9,7 @@ import matplotlib as mpl
 from scipy.signal import find_peaks
 from scipy.stats import stats
 from collections import Counter
-from itertools import wraps
+from functools import wraps
 import pyhrv.nonlinear as nl
 from wfdb import processing
 from itertools import chain
@@ -36,7 +36,6 @@ RR_WINDOW_THRESHOLD = RR_WLEN * 6   # Mínimo número de datos que requiere un r
 
 
 def timeit(func):
-    @wraps
     def timed_func(*args, **kwargs):
         s_time = time.time()
         r = func(*args, **kwargs)
@@ -257,12 +256,13 @@ class Record():
             self.rr = np.diff(get_peaks(raw_signal, self.fs))
             if len(self.rr) < 2048*3:
                 return False
-        a, s, h, d = nonLinearWindowing(self.rr, w_len=2048, over=0.95)
+        a, s, h, d, p = nonLinearWindowing(self.rr)
         self.N_LINEAR = {
             "app_ent": a,
             "samp_ent": s,
             "hfd": h,
-            "dfa": d
+            "dfa": d,
+            "poin": p
         }
         return True
 
@@ -321,26 +321,31 @@ def nonLinearWindowing(rr_signal: np.ndarray):
         window_slice = slice(idx, idx+RR_WLEN)
         rr_window = rr_signal[window_slice]
         with ThreadPoolExecutor() as exec:
-            app_ent.append(exec.submit(
+            a = exec.submit(
                 entropy.app_entropy,
                 rr_window, order=2, metric='chebyshev'
-            ).result())
-            samp_ent.append(exec.submit(
+            )
+            b = exec.submit(
                 entropy.sample_entropy,
                 rr_window, order=2, metric='chebyshev'
-            ).result())
-            hfd.append(exec.submit(
+            )
+            c = exec.submit(
                 entropy.fractal.higuchi_fd,
                 rr_window, kmax=10
-            ).result())
-            dfa.append(exec.submit(
+            )
+            d = exec.submit(
                 entropy.fractal.detrended_fluctuation,
                 rr_window
-            ).result())
-            poin.append(exec.submit(
+            )
+            e = exec.submit(
                 poincare_ratio,
                 rr_window
-            ))
+            )
+            app_ent.append(a.result())
+            samp_ent.append(b.result())
+            hfd.append(c.result())
+            dfa.append(d.result())
+            poin.append(e.result())
 
     return app_ent, samp_ent, hfd, dfa, poin
 
@@ -350,7 +355,7 @@ def poincare_ratio(rr_window=None, rpeaks=None):
     This function just returns the SD ratio for data collection.
     """
     # Check input values
-    nn = pyhrv.utils.check_input(nni, rpeaks)
+    nn = pyhrv.utils.check_input(rr_window, rpeaks)
 
     # Prepare Poincaré data
     x1 = np.asarray(nn[:-1])
