@@ -651,32 +651,41 @@ def plot_NL_metrics(DataBases, techniques, conditions, columns):
         plt.show()
 
 
-def KS_Testing(Database, conditions ):
+
+def KS_Testing(Databases, conditions):
     """
     docstring
     """
+    
     columns = ["AppEn", "SampEn", "DFA", "HFD","SD_ratio"]
     ks_test=list()
-    for col,cond in zip([1,2,3,4,5], columns, conditions):
-        metric = Database[columns[col]]
-        print("Base de datos: ", condition)
-        print("Métrica: ",columns[col])
-        for i in range(len(metric)-1):
+        
 
-            X = np.histogram(np.array(metric.iloc[i]), bins='auto')
-            Y = np.histogram(metric.iloc[i+1], bins='auto')
-
-            #X = np.array(metric.iloc[i])
-            #Y = np.array(metric.iloc[i+1])
-            ks_r = stats.ks_2samp(X[0], Y[0], alternative='two-sided')
-            p_val = ks_r[1]
+    for Data,cond in zip(Databases, conditions):
+        #print(Data)
+        print("Base de datos: ", cond)
+        for col in columns:
+            metric = np.array(Data[[col]])
+            print("Métrica: ",col)
+            #print(type(metric))
+            comb = list(combinations(metric, 2))
+            #print("Combinaciones posibles: ",len(comb))   
             
-            if p_val < 0.05:
-                ks_test.append(0)
-            elif p_val > 0.05:
-                ks_test.append(1)
-            prob = np.sum(ks_test)/len(ks_test)*100
-    print("Porcentaje de Similitud {} %" .format(prob))  
+            for i in range(len(comb)-1):
+                pair = comb[i]
+
+                X = np.histogram(np.array(pair[0]).all(), bins='auto')
+                Y = np.histogram(np.array(pair[1]).all(), bins='auto')
+                ks_r = stats.ks_2samp(X[0], Y[0], alternative='two-sided')
+                p_val = ks_r[1]
+                #print(p_val)
+                if p_val < 0.05:
+                    ks_test.append(0)
+                elif p_val > 0.05:
+                    ks_test.append(1)
+                prob = np.sum(ks_test)/len(ks_test)*100
+            print("Porcentaje de Similitud {} %" .format(prob)) 
+        print("\n")
 # %%
 def RunAnalysis():
     #ks_test = stats.kstest()
