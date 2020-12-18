@@ -24,14 +24,6 @@ import time
 import wfdb
 import re
 
-# ====================== Global Values =========================== #
-
-RR_WLEN = 1024
-RR_OVER = 0.95
-RR_STEP = int(RR_WLEN * (1 - RR_OVER))
-RR_WINDOW_THRESHOLD = RR_WLEN * 6   # Mínimo número de datos que requiere un registro rr para ser válido.
-
-
 # ================= Funciones y Definiciones ====================== #
 
 
@@ -61,6 +53,7 @@ class Case():
         self._case_dir = case_dir
         self._case_name = case_dir.stem
         self._sig_thresh = sig_thresh
+        self._processed = False
         self.pathology = re.search(
             f"([a-z_]*)(_{self._case_name})",
             str(case_dir)
@@ -109,11 +102,25 @@ class Case():
 
     @timeit
     def _non_linear_analysis_c(self):
+        orglen = len(self)
+        temp = list()
         for record in self.RECORDS:
-            if record not in self.nl_sig and record._non_linear_analysis_r(self._main_signal):
-                self.nl_sig.append(record)
+            if record.slen >= RR_WINDOW_THRESHOLD and self._main_signal in record.sig_names:
+                valid = record._non_linear_analysis_r(self._main_signal)
+                if valid:
+                    temp.append(record)
+        self.RECORDS = temp
+        print(f' < PROCESSED CASE {self._case_name} - {len(self)} valid records kept, {orglen-len(self)} records dumped.')
 
     def process(self, mode: str="nonlinear"):
+        """
+        Runs analysis on records
+        
+        If Case hasnt been processed, based on the input mode, it runs linear or
+        non linear analysis, this process also erases records which could not be
+        used for analysis, effectively reducing the Case data, hence why it's
+        recommended to run only once.
+        """
 
         def run_all(d: dict):
             [v() for k, v in d.items() if k != "full"]
@@ -124,20 +131,26 @@ class Case():
             "nonlinear": self._non_linear_analysis_c
         }
 
-        top_signals = Counter(chain.from_iterable([r.sig_names for r in self.RECORDS])).most_common()
-        for s, c in top_signals:
-            if s in ["APB", "PLETH R", "RESP"]:
-                continue
-            self._main_signal = s
-            print(f" > Optimal signal found is '{s}', present in {c}/{len(self)}")
-            break
-        else:
-            print(f"> CASE {self._case_name} Has no valid signal for processing.")
-            return
-        if mode == "full":
-            run_all(analysis_selector)
-            return
-        analysis_selector.get(mode)()
+        if not self._processed:
+            signals = [
+                r.sig_names for r in self.RECORDS       # List of lists
+                if r.slen >= RR_WINDOW_THRESHOLD        # as long as it's avobe threshold
+            ]
+            top_signals = Counter(chain.from_iterable(signals)).most_common()
+            for sig, count in top_signals:
+                if sig in ['APB', 'PLETH R', 'RESP']:
+                    continue
+                self._main_signal = sig
+                print(f' > PROCESSING CASE {self._case_name} optimal signal is "{sig}" present in {len(signals)} of {len(self)} records.')
+                break
+            else:
+                print(f"WARNING - Case {self._case_name} record's have no valid signal for processing.")
+                return
+            if mode == 'full':
+                return run_all(analysis_selector)
+            return analysis_selector.get(mode)()
+
+        print("Case already processed, cant do it again.")
         return
 
     @timeit
@@ -247,14 +260,15 @@ class Record():
             "kurtosis": k
         }
         return True
-    
-    @timeit
+
+    #@timeit
     def _non_linear_analysis_r(self, signal: str):
         if self.rr is  None:
             # get RR
             raw_signal = self[signal]
             self.rr = np.diff(get_peaks(raw_signal, self.fs))
-            if len(self.rr) < 2048*3:
+            if len(self.rr) < RR_WINDOW_THRESHOLD:
+                print(f' > X Record {self.name} - Analysis not possible, rr too short.')
                 return False
         a, s, h, d, p = nonLinearWindowing(self.rr)
         self.N_LINEAR = {
@@ -264,6 +278,7 @@ class Record():
             "dfa": d,
             "poin": p
         }
+        print(f' > < Record {self.name} - Non linear analysis done.')
         return True
 
     def plot(self):
@@ -281,10 +296,12 @@ class Record():
 def get_peaks(raw_signal: np.ndarray, fs: int) -> np.ndarray:
     MAX_BPM = 220
     raw_peaks, _ = find_peaks(raw_signal, distance=int((60/MAX_BPM)/(1/fs)))
-    print("raw_signal: ", len(raw_signal), "  raw_peaks: ", len(raw_peaks))
     med_peaks = processing.correct_peaks(raw_signal, raw_peaks, 30, 35, peak_dir='up')
     # print("med_peaks: ", med_peaks[:10])
-    wel_peaks = processing.correct_peaks(raw_signal, med_peaks, 30, 35, peak_dir='up') if len(med_peaks) > 0 else raw_peaks
+    try:
+        wel_peaks = processing.correct_peaks(raw_signal, med_peaks, 30, 35, peak_dir='up') if len(med_peaks) > 0 else raw_peaks
+    except ValueError:
+        return med_peaks[~np.isnan(med_peaks)]
     return wel_peaks[~np.isnan(wel_peaks)]
 
 
@@ -316,11 +333,20 @@ def nonLinearWindowing(rr_signal: np.ndarray):
     rr_signal   :: RR vector of time in seconds
     """
     app_ent, samp_ent, hfd, dfa, poin = list(), list(), list(), list(), list()
-
+    DATA_TABLES = [list() for M in NL_METHODS]
+    
     for idx in range(0, len(rr_signal)-RR_WLEN, RR_STEP):
         window_slice = slice(idx, idx+RR_WLEN)
         rr_window = rr_signal[window_slice]
         with ThreadPoolExecutor() as exec:
+            for t, m in zip(DATA_TABLES, NL_METHODS):
+                t.append(exec.submit(
+                    m['func'],
+                    rr_window, **m['args']
+                ).result())
+
+    return DATA_TABLES
+"""            
             a = exec.submit(
                 entropy.app_entropy,
                 rr_window, order=2, metric='chebyshev'
@@ -348,7 +374,7 @@ def nonLinearWindowing(rr_signal: np.ndarray):
             poin.append(e.result())
 
     return app_ent, samp_ent, hfd, dfa, poin
-
+"""
 
 def poincare_ratio(rr_window=None, rpeaks=None):
     """
@@ -682,4 +708,40 @@ def RunAnalysis():
     #ks_test = stats.kstest()
     pass
 
-# %%
+
+# ====================== Global Values =========================== #
+
+RR_WLEN = 1024
+RR_OVER = 0.95
+RR_STEP = int(RR_WLEN * (1 - RR_OVER))
+RR_WINDOW_THRESHOLD = RR_WLEN * 6   # Mínimo número de datos que requiere un registro rr para ser válido.
+
+
+NL_METHODS = [
+    {
+        "name": "Approxiamte Entropy",
+        "tag": "ae",
+        "func": entropy.app_entropy,
+        "args": dict(order=2, metric='chebyshev')
+    },{
+        "name": "Sample Entropy",
+        "tag": "se",
+        "func": entropy.sample_entropy,
+        "args": dict(order=2, metric='chebyshev')
+    },{
+        "name": "Higuchi Fractal Dimension",
+        "tag": "hfd",
+        "func": entropy.fractal.higuchi_fd,
+        "args": dict(kmax=10)
+    },{
+        "name": "Detrended Fluctuation Analysis",
+        "tag": 'dfa',
+        "func": entropy.fractal.detrended_fluctuation,
+        "args": dict()
+    },{
+        "name": "Poincaré SD Ratio",
+        "tag": "psd",
+        "func": poincare_ratio,
+        "args": dict()
+    }
+]
