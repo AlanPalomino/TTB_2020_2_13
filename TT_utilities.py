@@ -54,10 +54,14 @@ class Case():
         self._case_name = case_dir.stem
         self._sig_thresh = sig_thresh
         self._processed = False
-        self.pathology = re.search(
-            f"([a-z_]*)(_{self._case_name})",
-            str(case_dir)
-        ).groups()[0]
+        try:
+            self.pathology = re.search(
+                f"([a-z_]*)(_p)",
+                str(case_dir.parts[-2])
+            ).groups()[0]
+        except AttributeError:
+            print(case_dir.parts[-1])
+            raise AttributeError
         self._get_records()
 
     def __str__(self):
@@ -90,9 +94,12 @@ class Case():
             self._get_data(self._case_dir.joinpath(name))
 
     def _get_data(self, path: Path):
-        self.RECORDS.append(
-            Record(path, self._case_name)
-        )
+        try:
+            r = Record(path, self._case_name)
+            self.RECORDS.append(r)
+            return
+        except ValueError:
+            return
 
     @timeit
     def _linear_analysis_c(self):
@@ -147,8 +154,12 @@ class Case():
                 print(f"WARNING - Case {self._case_name} record's have no valid signal for processing.")
                 return
             if mode == 'full':
-                return run_all(analysis_selector)
-            return analysis_selector.get(mode)()
+                run_all(analysis_selector)
+                self._processed = True
+                return
+            analysis_selector.get(mode)()
+            self._processed = True
+            return
 
         print("Case already processed, cant do it again.")
         return
