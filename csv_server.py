@@ -6,12 +6,12 @@ import re
 
 
 filename = 'complete_data.csv'
+columns = ["case", "record", "cond"]
+for m in NL_METHODS:
+    columns.extend([m["tag"] + "_m", m["tag"] + "_v"])
 
 
 def create_df() -> pd.DataFrame:
-    columns = ["case", "record", "cond"]
-    for m in NL_METHODS:
-        columns.extend([m["tag"] + "_m", m["tag"] + "_v"])
     return pd.DataFrame(columns=columns)
 
 
