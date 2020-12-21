@@ -23,8 +23,7 @@ def complete_db():
             f.write(f"""
 mkdir {condition}_{record_route[4:]}
 cd {condition}_{record_route[4:]}
-if [[ ! -d $PWD/{record_route[4:]} ]]
-then
+if [[ ! -d $PWD/{record_route[4:]} ]]; then
     wget -r -nc -np -c https://physionet.org/static/published-projects/mimic3wdb-matched/1.0/{record_route}/
     mv physionet.org/static/published-projects/mimic3wdb-matched/1.0/{record_route} .
 fi
@@ -55,8 +54,7 @@ def worksample_db():
             f.write(f"""
 mkdir {condition}_{record_route[4:]}
 cd {condition}_{record_route[4:]}
-if [[ ! -d $PWD/{record_route[4:]} ]]
-then
+if [[ ! -d $PWD/{record_route[4:]} ]]; then
     wget -r -nc -np -c https://physionet.org/static/published-projects/mimic3wdb-matched/1.0/{record_route}/
     mv physionet.org/static/published-projects/mimic3wdb-matched/1.0/{record_route} .
 fi

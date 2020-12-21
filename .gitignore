@@ -1,6 +1,6 @@
 Data/
 __pycache__/
-code_tests.ipynb
 .ipynb_checkpoints/
-*.ipynb
 .vscode/
+nohup.out
+
