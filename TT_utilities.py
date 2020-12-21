@@ -5,6 +5,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from biosppy.utils import ReturnTuple
 from matplotlib import pyplot as plt
+from itertools import combinations 
 import matplotlib as mpl
 from scipy.signal import find_peaks
 from scipy.stats import stats
@@ -558,7 +559,7 @@ def distribution_NL(db, caso, area=False):
     for idx in range(len(moment)):
             
         title = 'Distribución de ' + m_label[idx] +' en Casos de ' + caso
-        figname = m_label[idx]+"_"+caso+'.png'
+        #figname = m_label[idx]+"_"+caso+'.png'
         xlab = 'Valor de '+ m_label[idx]
         plt.figure(figsize=(10,7), dpi= 100)
         plt.gca().set(title=title, ylabel='Coeficiente',xlabel=xlab)
@@ -597,7 +598,7 @@ def distribution_NL(db, caso, area=False):
         #show()
         plt.autoscale()
         plt.legend()
-        plt.savefig(path + figname )
+        #plt.savefig(path + figname )
     
 def get_allNL_stats(data, measure):
     """
