@@ -143,5 +143,40 @@ for idx in range(len(cases)):
 conditions = ["FA", "ICC", "Control"]
 Databases = [AF_CASES, CHF_CASES, HC_CASES]
 
-KS_Testing(Databases, conditions)
+columns = ["AppEn", "SampEn", "DFA", "HFD","SD_ratio"]
+ks_test=list()
+        
+
+for Data,cond in zip(Databases, conditions):
+    #print(Data)
+    print("Base de datos: ", cond)
+    for col in columns:
+        metric = np.array(Data[[col]])
+        print("Métrica: ",col)
+        #print(type(metric))
+        comb = list(combinations(metric, 2))
+        #print("Combinaciones posibles: ",len(comb))   
+            
+        for i in range(len(comb)-1):
+            pair = comb[i]
+
+            X = np.histogram(np.array(pair[0]).all(), bins='auto')
+            Y = np.histogram(np.array(pair[1]).all(), bins='auto')
+            ks_r = stats.ks_2samp(X[0], Y[0], alternative='two-sided')
+            p_val = ks_r[1]
+            #print(p_val)
+            if p_val < 0.05:
+                ks_test.append(0)
+            elif p_val > 0.05:
+                ks_test.append(1)
+            prob = np.sum(ks_test)/len(ks_test)*100
+        print("Porcentaje de Similitud {} %" .format(prob)) 
+    print("\n")
+
+#KS_Testing(Databases, conditions)
+# %%
+comp_data = pd.read_csv('complete_data.csv')
+MainDF  = pd.DataFrame(comp_data)
+
+
 # %%
