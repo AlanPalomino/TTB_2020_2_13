@@ -175,3 +175,8 @@ for Data,cond in zip(Databases, conditions):
 
 #KS_Testing(Databases, conditions)
 # %%
+comp_data = pd.read_csv('complete_data.csv')
+MainDF  = pd.DataFrame(comp_data)
+
+
+# %%
