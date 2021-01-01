@@ -180,3 +180,6 @@ MainDF  = pd.DataFrame(comp_data)
 
 
 # %%
+MainDummy = pd.concat([HC_CASES,AF_CASES,CHF_CASES])
+MainDummy
+# %%
