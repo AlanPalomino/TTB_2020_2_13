@@ -153,7 +153,7 @@ data = MainDF.sample(frac=1.0)
 #Clean dataset
 pathology = data[["cond","ae_m","ae_v","se_m","se_v","hfd_m","hfd_v","dfa_m","dfa_v","psd_m","psd_v"]]
 #pathology
-tar_labels =
+tar_labels =['AF','CHF','IM']
 # Define train set and targets
 #Group by pathology
 a_f=pathology[pathology["cond"] ==0]
@@ -210,3 +210,44 @@ data = MainDummy.to_numpy()
 mapper = umap.UMAP().fit(data)
 #umap.plot.points(mapper, labels=digits.target)
 # %%
+# AREA UNDER THE CURVE
+from sklearn import metrics
+y = np.array([1, 1, 2, 2])
+pred = np.array([0.1, 0.4, 0.35, 0.8])
+fpr, tpr, thresholds = metrics.roc_curve(y, pred, pos_label=2)
+metrics.auc(fpr, tpr)
+
+# %%
+hist = np.histogram(MainDummy.iloc[0]['SampEn'])
+
+
+# %%
+from statsmodels.tsa.arima_model import ARIMA
+from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import train_test_split
+
+p = 5  # lag
+d = 1  # difference order
+q = 0  # size of moving average window
+
+Y = np.array(hist[1]).astype('float32')
+
+train, test = train_test_split(Y, test_size=0.20, shuffle=False)
+history = train.tolist()
+predictions = []
+
+for t in range(len(test)):
+	model = ARIMA(history, order=(p,d,q))
+	fit = model.fit(disp=False)
+	pred = fit.forecast()[0]
+  
+	predictions.append(pred)
+	history.append(test[t])
+  
+print('MSE: %.3f' % mean_squared_error(test, predictions))
+
+plt.plot(test)
+plt.plot(predictions, color='red')
+plt.show()
+# %%
+!
