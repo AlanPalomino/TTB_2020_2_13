@@ -18,6 +18,7 @@ from matplotlib import pyplot as plt
 from matplotlib import gridspec
 from scipy.stats import stats
 from pprint import pprint 
+import seaborn as sns
 import entropy as tpy
 import pandas as pd
 import numpy as np
@@ -145,4 +146,52 @@ comb = list(combinations(dists, 2))
 for i in range(len(comb)):
     pair = comb[i]
     print("Combina {}  con {}." .format(pair[0],pair[1]))
+# %%
+from main import MainDF, MainDummy
+# %%
+import theano
+from theano import tensor
+a = tensor.dscalar()
+b = tensor.dscalar()
+c = a + b
+f = theano.function([a,b], c)
+d = f(1.5, 2.5)
+print (d)
+# %%
+MainDF = MainDF.sample(frac=1.0)
+MainDF.shape
+
+Datmat = MainDF.copy()
+del Datmat['case']
+Datmat.dropna()
+
+# TRansformations
+Datmat['cond'].astype(np.int32)
+Datmat['ae_m'].astype('float32')
+Datmat.info()
+# %%
+import umap
+import umap.plot
+from sklearn.datasets import load_digits
+
+digits = load_digits()
+
+mapper = umap.UMAP().fit(digits.data)
+umap.plot.points(mapper, labels=digits.target)
+# %%
+digits_df = pd.DataFrame(digits.data[:,1:11])
+digits_df['digit'] = pd.Series(digits.target).map(lambda x: 'Digit {}'.format(x))
+sns.pairplot(digits_df, hue='digit', palette='Spectral')
+# %%
+import tensorflow as tf
+from tensorflow import keras
+#convert the pandas object to a tensor
+
+MainDummy.info()
+MainDummy.values()
+#data=tf.convert_to_tensor(MainDummy)
+#type(data)
+# %%
+mapper = umap.UMAP().fit(Datmat)
+#umap.plot.points(mapper, labels=digits.target)
 # %%
