@@ -48,6 +48,7 @@ class Case():
     """
 
     def __init__(self, case_dir: Path, sig_thresh: int=1000):
+        print(case_dir)
         self.RECORDS = []
         self.sig = []
         self.nl_sig = []
@@ -62,6 +63,7 @@ class Case():
             ).groups()[0]
         except AttributeError:
             print(case_dir.parts[-1])
+            print(case_dir.parts[-2])
             raise AttributeError
         self._get_records()
 
