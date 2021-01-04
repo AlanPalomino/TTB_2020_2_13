@@ -1,8 +1,10 @@
 from TT_utilities import Case, NL_METHODS
+from TT_utilities import Record
 from multiprocessing import Pool
 from scipy.stats import stats
 from pathlib import Path
 from entropy import spectral_entropy
+from hurst import compute_Hc
 import pandas as pd
 import numpy as np
 import pickle
@@ -11,7 +13,8 @@ import re
 
 
 def hurst_eval(rr):
-    return 1
+    H, _, _ = compute_Hc(rr)
+    return H
 
 
 def generate_csv():
@@ -54,8 +57,8 @@ def generate_csv():
                 c._case_name,               # Case
                 r.name,                     # Record 
                 c.pathology,                # Condition
-                condition_ids[c.pathology],  # Condition ID
-                hurst_eval(r.rr)            # RR Hurst value
+                condition_ids[c.pathology], # Condition ID
+                r.hurst                     # RR Hurst value
             ] + values
             FULL_CSV = FULL_CSV.append(
                 pd.Series(
@@ -78,24 +81,31 @@ def unpickle_data():
                pickle.load(pf)
            )
    return UNPICKLED
-           
+
+
+def process_case(case_path: Path):
+    c = Case(case_path)
+    c.process()
+    print(f"\n\n\t\tCASE {c._case_name} has {len(c)} RECORDS\n\n")
+    if len(c) > 0:
+        with open(f'Pickled/case_{c._case_name}.pkl', 'wb') as pf:
+            pickle.dump(c, pf)
+        
     
-def pickle_data(num: int=0):
+def pickle_data():
     def gen_name(path):
         c_name = re.search('p[0-9]{6}', str(path))[0]
         return path.joinpath(c_name)
     
-    def process_case(case_path: Path):
-        c = Case(case_path)
-        c.process()
-        if len(c) > 0:
-            with open(f'case_{c._case_name}.pkl', 'wb') as pf:
-                pickle.dump(c, pf)
-
+   
     RECORD_DIRS = list(Path("./Data").glob("*_p0*")) 
     RECORD_DIRS = [gen_name(p) for p in RECORD_DIRS]
-    if num != 0:
-        RECORD_DIRS = RECORD_DIRS[:num]
+
+    try:
+        RECORD_DIRS = RECORD_DIRS[:int(sys.argv[2])]
+        print(f'About to pickle first {len(RECORD_DIRS)} cases')
+    except IndexError:
+        print(f'About to pickle full data')
 
     p = Pool()
     p.map(process_case, RECORD_DIRS)
