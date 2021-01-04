@@ -4,15 +4,31 @@ from scipy.stats import stats
 from pathlib import Path
 from entropy import spectral_entropy
 import pandas as pd
+import numpy as np
 import pickle
 import sys
 import re
 
 
+def hurst_eval(rr):
+    return 1
+
+
 def generate_csv():
+    condition_ids = dict(
+        atrial_fibrillation=0,
+        congestive_heartfailure=1,
+        myocardial_infarction=2
+    )
     cases_list = unpickle_data()
     csv_name = 'complete_data.csv'
-    columns = ['case', 'record', 'condition']
+    columns = [
+        'case',
+        'record',
+        'condition',
+        'cond_id',
+        'hurst',
+    ]
     for m in NL_METHODS:
         columns.extend([
             m['tag'] + '_mean',
@@ -34,7 +50,13 @@ def generate_csv():
                     s[4],                                       # Skewness
                     spectral_entropy(v, sf=r.fs, method='fft')  # Spectral Entropy
                 ])
-            row_data = [c._case_name, r.name, c.pathology] + values
+            row_data = [
+                c._case_name,               # Case
+                r.name,                     # Record 
+                c.pathology,                # Condition
+                condition_ids[c.pathology],  # Condition ID
+                hurst_eval(r.rr)            # RR Hurst value
+            ] + values
             FULL_CSV = FULL_CSV.append(
                 pd.Series(
                     data=row_data,
