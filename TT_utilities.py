@@ -15,6 +15,7 @@ import pyhrv.nonlinear as nl
 from wfdb import processing
 from itertools import chain
 from pathlib import Path
+from hurst import compute_Hc
 import seaborn as sns
 import pandas as pd
 import numpy as np
@@ -25,8 +26,7 @@ import time
 import wfdb
 import re
 
-# ================= Funciones y Definiciones ====================== #
-
+# ================= Funciones y Definiciones ====================== # 
 
 def timeit(func):
     def timed_func(*args, **kwargs):
@@ -37,6 +37,9 @@ def timeit(func):
         return r
     return timed_func
 
+def get_hurst(rr):
+    H, _, _ = compute_Hc(rr)
+    return H
 
 # ================= Importando Bases de Datos
 class Case():
@@ -266,6 +269,7 @@ class Record():
             self.rr = np.diff(get_peaks(raw_signal, self.fs))
             if len(self.rr) < 2048*3:
                 return False
+            self.hurst = get_hurst(self.rr)
         m, v, s, k = linearWindowing(self.rr, w_len=1024, over=0.95)
         self.LINEAR = {
             "means": m,
@@ -284,6 +288,8 @@ class Record():
             if len(self.rr) < RR_WINDOW_THRESHOLD:
                 print(f' > X Record {self.name} - Analysis not possible, rr too short.')
                 return False
+            self.hurst = get_hurst(self.rr)
+ 
         a, s, h, d, p = nonLinearWindowing(self.rr)
         self.N_LINEAR = {
             "app_ent": a,
