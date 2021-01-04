@@ -148,36 +148,50 @@ for i in range(len(comb)):
     print("Combina {}  con {}." .format(pair[0],pair[1]))
 # %%
 from main import MainDF, MainDummy
-# %%
-import theano
-from theano import tensor
-a = tensor.dscalar()
-b = tensor.dscalar()
-c = a + b
-f = theano.function([a,b], c)
-d = f(1.5, 2.5)
-print (d)
-# %%
-MainDF = MainDF.sample(frac=1.0)
-MainDF.shape
 
-Datmat = MainDF.copy()
-del Datmat['case']
-Datmat.dropna()
+data = MainDF.sample(frac=1.0)
+#Clean dataset
+pathology = data[["cond","ae_m","ae_v","se_m","se_v","hfd_m","hfd_v","dfa_m","dfa_v","psd_m","psd_v"]]
+#pathology
+tar_labels =
+# Define train set and targets
+#Group by pathology
+a_f=pathology[pathology["cond"] ==0]
+c_c=pathology[pathology["cond"] ==1][0:1190]
+m_i=pathology[pathology["cond"] ==2][0:1190]
 
-# TRansformations
-Datmat['cond'].astype(np.int32)
-Datmat['ae_m'].astype('float32')
-Datmat.info()
+#Extract important metrics
+atrial_f = a_f[["ae_m","ae_v","se_m","se_v","hfd_m","hfd_v","dfa_m","dfa_v","psd_m","psd_v"]]
+congestive_h = c_c[["ae_m","ae_v","se_m","se_v","hfd_m","hfd_v","dfa_m","dfa_v","psd_m","psd_v"]]
+myocardial_i = m_i[["ae_m","ae_v","se_m","se_v","hfd_m","hfd_v","dfa_m","dfa_v","psd_m","psd_v"]]
+
+#Create target array for training
+targets=a_f['cond'].tolist()+m_i['cond'].tolist()
+
+#Create input array for training
+X=pd.concat([atrial_f,myocardial_i],ignore_index=True)
+X
+#MainDF.shape
+
+#Datmat = MainDF.copy()
+#del Datmat['case']
+#Datmat.dropna()
+#Datmat.info()
+# Transformations
+#Datmat['cond'].astype(np.int32)
+#Datmat['ae_m'].astype('float32')
+#Data =np.float32(Datmat.to_numpy()).reshape(-13,15117)
+#np.shape(Data)
+
 # %%
 import umap
 import umap.plot
-from sklearn.datasets import load_digits
+#from sklearn.datasets import load_digits
 
-digits = load_digits()
+#digits = load_digits()
 
-mapper = umap.UMAP().fit(digits.data)
-umap.plot.points(mapper, labels=digits.target)
+mapper = umap.UMAP().fit(X)
+umap.plot.points(mapper, labels=targets)
 # %%
 digits_df = pd.DataFrame(digits.data[:,1:11])
 digits_df['digit'] = pd.Series(digits.target).map(lambda x: 'Digit {}'.format(x))
@@ -188,10 +202,11 @@ from tensorflow import keras
 #convert the pandas object to a tensor
 
 MainDummy.info()
-MainDummy.values()
+MainDummy.shape
+data = MainDummy.to_numpy()
 #data=tf.convert_to_tensor(MainDummy)
 #type(data)
 # %%
-mapper = umap.UMAP().fit(Datmat)
+mapper = umap.UMAP().fit(data)
 #umap.plot.points(mapper, labels=digits.target)
 # %%
