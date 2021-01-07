@@ -44,12 +44,13 @@ from pycwt.helpers import find
 
 # Definir parámetros de la señal
 
-dat = numpy.array(MainDummy.iloc[2]['rr'])
-record = str(MainDummy.iloc[2]['record'])
+dat = numpy.array(MainDummy.iloc[40]['rr'])
+record = str(MainDummy.iloc[40]['record'])
+cond = str(MainDummy.iloc[40]['conditon'])
 #url = 'http://paos.colorado.edu/research/wavelets/wave_idl/nino3sst.txt'
 #dat = numpy.genfromtxt(url, skip_header=19)
-title = 'Señal de HRV_record ['+ record +']'
-label = 'HRV Control '
+title = 'Señal de HRV_record ['+ record +'] Condition: ['+cond+ ']'
+label = 'HRV'
 units = 'mV'
 t0 = 1871.0
 dt = 0.25  # In years
@@ -165,8 +166,8 @@ pyplot.setp(cx.get_yticklabels(), visible=False)
 dx = pyplot.axes([0.1, 0.07, 0.65, 0.2], sharex=ax)
 dx.axhline(scale_avg_signif, color='k', linestyle='--', linewidth=1.)
 dx.plot(t, scale_avg, 'k-', linewidth=1.5)
-dx.set_title('d) {}--{} year scale-averaged power'.format(2, 8))
-dx.set_xlabel('Time (year)')
+dx.set_title('d) {}--{} seconds scale-averaged power'.format(2, 8))
+dx.set_xlabel('Time (s)')
 dx.set_ylabel(r'Average variance [{}]'.format(units))
 ax.set_xlim([t.min(), t.max()])
 
