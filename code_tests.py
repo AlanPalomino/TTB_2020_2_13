@@ -180,25 +180,46 @@ def WaveletPowerSpectrum():
 # %%
 data = MainDF.sample(frac=1.0)
 #Clean dataset
-pathology = data[["cond","ae_m","ae_v","se_m","se_v","hfd_m","hfd_v","dfa_m","dfa_v","psd_m","psd_v"]]
+pathology = data[['record','cond_id', 'hurst', 'ae_mean',
+       'ae_variance', 'ae_skewness', 'ae_spectral_entropy', 'se_mean',
+       'se_variance', 'se_skewness', 'se_spectral_entropy', 'hfd_mean',
+       'hfd_variance', 'hfd_skewness', 'hfd_spectral_entropy', 'dfa_mean',
+       'dfa_variance', 'dfa_skewness', 'dfa_spectral_entropy', 'psd_mean',
+       'psd_variance', 'psd_skewness', 'psd_spectral_entropy']]
 #pathology
-tar_labels =['AF','CHF','IM']
+pathology = pathology.dropna()
+tar_labels =  data['condition']
 # Define train set and targets
 #Group by pathology
-a_f=pathology[pathology["cond"] ==0]
-c_c=pathology[pathology["cond"] ==1][0:1190]
-m_i=pathology[pathology["cond"] ==2][0:1190]
+a_f = pathology[pathology["cond_id"] ==0]
+c_c = pathology[pathology["cond_id"] ==1][0:1190]
+m_i = pathology[pathology["cond_id"] ==2][0:1190]
 
 #Extract important metrics
-atrial_f = a_f[["ae_m","ae_v","se_m","se_v","hfd_m","hfd_v","dfa_m","dfa_v","psd_m","psd_v"]]
-congestive_h = c_c[["ae_m","ae_v","se_m","se_v","hfd_m","hfd_v","dfa_m","dfa_v","psd_m","psd_v"]]
-myocardial_i = m_i[["ae_m","ae_v","se_m","se_v","hfd_m","hfd_v","dfa_m","dfa_v","psd_m","psd_v"]]
+atrial_f = a_f[['record', 'cond_id', 'hurst', 'ae_mean', 'ae_variance', 'ae_skewness',
+       'ae_spectral_entropy', 'se_mean', 'se_variance', 'se_skewness',
+       'se_spectral_entropy', 'hfd_mean', 'hfd_variance', 'hfd_skewness',
+       'hfd_spectral_entropy', 'dfa_mean', 'dfa_variance', 'dfa_skewness',
+       'dfa_spectral_entropy', 'psd_mean', 'psd_variance', 'psd_skewness',
+       'psd_spectral_entropy']]
+congestive_h = c_c[['record', 'cond_id', 'hurst', 'ae_mean', 'ae_variance', 'ae_skewness',
+       'ae_spectral_entropy', 'se_mean', 'se_variance', 'se_skewness',
+       'se_spectral_entropy', 'hfd_mean', 'hfd_variance', 'hfd_skewness',
+       'hfd_spectral_entropy', 'dfa_mean', 'dfa_variance', 'dfa_skewness',
+       'dfa_spectral_entropy', 'psd_mean', 'psd_variance', 'psd_skewness',
+       'psd_spectral_entropy']]
+myocardial_i = m_i[['record', 'cond_id', 'hurst', 'ae_mean', 'ae_variance', 'ae_skewness',
+       'ae_spectral_entropy', 'se_mean', 'se_variance', 'se_skewness',
+       'se_spectral_entropy', 'hfd_mean', 'hfd_variance', 'hfd_skewness',
+       'hfd_spectral_entropy', 'dfa_mean', 'dfa_variance', 'dfa_skewness',
+       'dfa_spectral_entropy', 'psd_mean', 'psd_variance', 'psd_skewness',
+       'psd_spectral_entropy']]
 
 #Create target array for training
-targets=a_f['cond'].tolist()+m_i['cond'].tolist()
+targets=a_f['cond_id'].tolist()+m_i['cond_id'].tolist()+ c_c['cond_id'].tolist()
 
-#Create input array for training
-X=pd.concat([atrial_f,myocardial_i],ignore_index=True)
+#Create input array for training0
+X=pd.concat([atrial_f,myocardial_i, congestive_h ],ignore_index=True)
 X
 #MainDF.shape
 
@@ -214,23 +235,22 @@ X
 
 # %%
 #================= UMAP =====================================#
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 import tensorflow as tf
 from tensorflow import keras
 import umap
 import umap.plot
-#from sklearn.datasets import load_digits
 
-#digits = load_digits()
-
-mapper = umap.UMAP().fit(X)
-umap.plot.points(mapper, labels=tar_labels)
-# %%
-digits_df = pd.DataFrame(digits.data[:,1:11])
-digits_df['digit'] = pd.Series(digits.target).map(lambda x: 'Digit {}'.format(x))
-sns.pairplot(digits_df, hue='digit', palette='Spectral')
-
-
-
+reducer = umap.UMAP()
+# Scale Data
+get_data = X.values
+scaled_data = StandardScaler().fit_transform(get_data)
+print('Forma de Datos escalados: {}'.format(scaled_data.shape))
+# Reduce data
+embedding = reducer.fit_transform(scaled_data)
+print('Forma de Datos reducidos: {}'.format(embedding.shape))
+#embedding.shape
 # %%
 #================ AREA UNDER THE CURVE =======================================
 from sklearn import metrics
