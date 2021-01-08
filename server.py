@@ -1,4 +1,4 @@
-from TT_utilities import Case, NL_METHODS
+from TT_utilities import Case, NL_METHODS, RR_WLEN
 from TT_utilities import Record
 from multiprocessing import Pool
 from scipy.stats import stats
@@ -104,15 +104,14 @@ def process_case(case_path: Path):
             pickle.dump(c, pf)
 
 
+def gen_name(path):
+    c_name = re.search('p[0-9]{6}', str(path))[0]
+    return path.joinpath(c_name)
+
+
 def pickle_data():
-    def gen_name(path):
-        c_name = re.search('p[0-9]{6}', str(path))[0]
-        return path.joinpath(c_name)
-    
-   
     RECORD_DIRS = list(Path("./Data").glob("*_p0*")) 
     RECORD_DIRS = [gen_name(p) for p in RECORD_DIRS]
-
     try:
         RECORD_DIRS = RECORD_DIRS[:int(sys.argv[2])]
         print(f'About to pickle first {len(RECORD_DIRS)} cases')
@@ -133,6 +132,29 @@ def help():
     for opt in OPTS:
         print(f"{', '.join(opt['opts'])} :")
         print(f"\n{opt['desc']}")
+
+
+def test_case(ddir: Path):
+    c = Case(ddir)
+    c.process()
+    print(f'\n\n\tTEST CASE with {len(c)} records processed and saved to: case_{c._case_name}.pkl\n\n')
+    if len(c) > 0:
+        with open(f'Test_{RR_WLEN}ws/case_{c._case_name}.pkl', 'wb') as pf:
+            pickle.dump(c, pf)
+
+
+def run_test():
+    n = int(sys.argv[2])
+    
+    af_dirs = list(Path('Data/').glob('atrial_fibrillation_p*'))[:n]
+    mi_dirs = list(Path('Data/').glob('myocardial_infarction_p*'))[:n]
+    ch_dirs = list(Path('Data/').glob('congestive_heartfailure_p*'))[:n]
+
+    data_dirs = [ gen_name(d) for d in af_dirs + mi_dirs + ch_dirs]
+
+    p = Pool()
+    p.map(test_case, data_dirs)
+    p.close()
 
 
 def main(argv):
@@ -163,6 +185,10 @@ OPTS = [
         'opts': ['-gc', '--generate_csv'],
         'desc': 'Unpickles data and generates the corresponding csv.',
         'func': generate_csv
+    },{
+        'opts': ['-rt', '--run_test'],
+        'desc': 'Run selected test with [n] number of cases per pathology.',
+        'func': run_test
     }
 ]
 

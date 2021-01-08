@@ -35,6 +35,7 @@ from hrvanalysis import (
 
 # ================= Funciones y Definiciones ====================== # 
 
+
 def timeit(func):
     def timed_func(*args, **kwargs):
         s_time = time.time()
@@ -44,6 +45,7 @@ def timeit(func):
         return r
     return timed_func
 
+
 def get_hurst(rr):
     H, _, _ = compute_Hc(rr)
     return H
@@ -51,7 +53,7 @@ def get_hurst(rr):
 
 def get_poincare_ratio(rr):
     return get_poincare_plot_features(rr)['ratio_sd2_sd1']
-
+ 
 
 # ================= Importando Bases de Datos
 class Case():
@@ -308,7 +310,6 @@ class Record():
         self.samp_entropy = get_sampen(self.rr_temp)
         # END OF SECTION
 
-        a, s, h, d, p = nonLinearWindowing(self.rr_int)
         self.N_LINEAR = {
             m["tag"]: t for m, t in zip(NL_METHODS,
                                         nonLinearWindowing(self.rr_int))
@@ -343,6 +344,7 @@ def get_peaks(raw_signal: np.ndarray, fs: int) -> np.ndarray:
 
 
 # ================= Ventaneo de señales
+
 
 def linearWindowing(rr_signal: np.ndarray):
     """
@@ -513,7 +515,6 @@ def Poincare_Windowing(rr_signal, plotter=False):
     return poin_r
 
 
-
 def add_moments(row: pd.Series):
     """Applies five moments to Series object"""
     means, var, skew, kurt = linearWindowing(row.rr)
@@ -632,6 +633,7 @@ def distribution_NL(db, caso, area=False):
         plt.autoscale()
         plt.legend()
         #plt.savefig(path + figname )
+
 
 def get_allNL_stats(data, measure):
     """
