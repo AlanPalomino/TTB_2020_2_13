@@ -31,6 +31,13 @@ def generate_csv():
         'condition',
         'cond_id',
         'hurst',
+        'cvnni',
+        'cvsd',
+        'mean_nni',
+        'lf_hf_ratio',
+        'total_power',
+        'ratio_sd2_sd1',
+        'sampen',
     ]
     for m in NL_METHODS:
         columns.extend([
@@ -58,7 +65,14 @@ def generate_csv():
                 r.name,                     # Record 
                 c.pathology,                # Condition
                 condition_ids[c.pathology], # Condition ID
-                r.hurst                     # RR Hurst value
+                r.hurst,                    # RR Hurst value
+                r.time_domain['cvnni'],
+                r.time_domain['cvsd'],
+                r.time_domain['mean_nni'],
+                r.freq_domain['lf_hf_ratio'],
+                r.freq_domain['total_power'],
+                r.poin_features['ratio_sd2_sd1'],
+                r.samp_entropy['sampen']
             ] + values
             FULL_CSV = FULL_CSV.append(
                 pd.Series(
@@ -70,17 +84,15 @@ def generate_csv():
     FULL_CSV.to_csv(csv_name, index=False)
 
 
-
-
 def unpickle_data():
-   p_paths = list(Path('./Pickled').glob('*.pkl')) 
-   UNPICKLED = list()
-   for pkl in p_paths:
-       with pkl.open('rb') as pf:
-           UNPICKLED.append(
-               pickle.load(pf)
-           )
-   return UNPICKLED
+    p_paths = list(Path('./Pickled').glob('*.pkl')) 
+    UNPICKLED = list()
+    for pkl in p_paths:
+        with pkl.open('rb') as pf:
+            UNPICKLED.append(
+                pickle.load(pf)
+            )
+    return UNPICKLED
 
 
 def process_case(case_path: Path):
@@ -90,8 +102,8 @@ def process_case(case_path: Path):
     if len(c) > 0:
         with open(f'Pickled/case_{c._case_name}.pkl', 'wb') as pf:
             pickle.dump(c, pf)
-        
-    
+
+
 def pickle_data():
     def gen_name(path):
         c_name = re.search('p[0-9]{6}', str(path))[0]

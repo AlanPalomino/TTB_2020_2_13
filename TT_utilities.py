@@ -26,6 +26,13 @@ import time
 import wfdb
 import re
 
+from hrvanalysis import (
+    get_frequency_domain_features,
+    get_poincare_plot_features,
+    get_sampen,
+    get_time_domain_features
+)
+
 # ================= Funciones y Definiciones ====================== # 
 
 def timeit(func):
@@ -261,7 +268,6 @@ class Record():
         reco = wfdb.rdrecord(str(self.record_dir))
         return reco.p_signal
 
-    @timeit
     def _linear_analysis_r(self, signal: str):
         if self.rr is None:
             # get RR
@@ -279,18 +285,25 @@ class Record():
         }
         return True
 
-    #@timeit
     def _non_linear_analysis_r(self, signal: str):
         if self.rr is  None:
             # get RR
             raw_signal = self[signal]
-            self.rr = np.diff(get_peaks(raw_signal, self.fs))
-            if len(self.rr) < RR_WINDOW_THRESHOLD:
+            self.rr_int = np.diff(get_peaks(raw_signal, self.fs))
+            self.rr_temp = self.rr_int * (1/self.fs)
+            if len(self.rr_int) < RR_WINDOW_THRESHOLD:
                 print(f' > X Record {self.name} - Analysis not possible, rr too short.')
                 return False
-            self.hurst = get_hurst(self.rr)
- 
-        a, s, h, d, p = nonLinearWindowing(self.rr)
+            self.hurst = get_hurst(self.rr_int)
+
+        # HRVANALYSIS SECTION
+        self.time_domain = get_time_domain_features(self.rr_temp)
+        self.freq_domain = get_frequency_domain_features(self.rr_temp)
+        self.poin_features = get_poincare_plot_features(self.rr_temp)
+        self.samp_entropy = get_sampen(self.rr_temp)
+        # END OF SECTION
+
+        a, s, h, d, p = nonLinearWindowing(self.rr_int)
         self.N_LINEAR = {
             "app_ent": a,
             "samp_ent": s,
@@ -298,6 +311,7 @@ class Record():
             "dfa": d,
             "poin": p
         }
+
         print(f' > < Record {self.name} - Non linear analysis done.')
         return True
 
@@ -317,6 +331,8 @@ def get_peaks(raw_signal: np.ndarray, fs: int) -> np.ndarray:
     MAX_BPM = 220
     raw_peaks, _ = find_peaks(raw_signal, distance=int((60/MAX_BPM)/(1/fs)))
     med_peaks = processing.correct_peaks(raw_signal, raw_peaks, 30, 35, peak_dir='up')
+    # print("med_peaks: ", med_peaks[:10])
+    # print("med_peaks: ", med_peaks[:10])
     # print("med_peaks: ", med_peaks[:10])
     try:
         wel_peaks = processing.correct_peaks(raw_signal, med_peaks, 30, 35, peak_dir='up') if len(med_peaks) > 0 else raw_peaks
@@ -354,7 +370,7 @@ def nonLinearWindowing(rr_signal: np.ndarray):
     """
     app_ent, samp_ent, hfd, dfa, poin = list(), list(), list(), list(), list()
     DATA_TABLES = [list() for M in NL_METHODS]
-    
+
     for idx in range(0, len(rr_signal)-RR_WLEN, RR_STEP):
         window_slice = slice(idx, idx+RR_WLEN)
         rr_window = rr_signal[window_slice]
@@ -366,35 +382,7 @@ def nonLinearWindowing(rr_signal: np.ndarray):
                 ).result())
 
     return DATA_TABLES
-"""            
-            a = exec.submit(
-                entropy.app_entropy,
-                rr_window, order=2, metric='chebyshev'
-            )
-            b = exec.submit(
-                entropy.sample_entropy,
-                rr_window, order=2, metric='chebyshev'
-            )
-            c = exec.submit(
-                entropy.fractal.higuchi_fd,
-                rr_window, kmax=10
-            )
-            d = exec.submit(
-                entropy.fractal.detrended_fluctuation,
-                rr_window
-            )
-            e = exec.submit(
-                poincare_ratio,
-                rr_window
-            )
-            app_ent.append(a.result())
-            samp_ent.append(b.result())
-            hfd.append(c.result())
-            dfa.append(d.result())
-            poin.append(e.result())
 
-    return app_ent, samp_ent, hfd, dfa, poin
-"""
 
 def poincare_ratio(rr_window=None, rpeaks=None):
     """
@@ -416,7 +404,6 @@ def poincare_ratio(rr_window=None, rpeaks=None):
 
 
 def poincarePlot(nni=None, rpeaks=None, show=True, figsize=None, ellipse=True, vectors=True, legend=True, marker='o'):
-    
     # Check input values
     nn = pyhrv.utils.check_input(nni, rpeaks)
 
@@ -431,7 +418,6 @@ def poincarePlot(nni=None, rpeaks=None, show=True, figsize=None, ellipse=True, v
     # Area of ellipse
     area = np.pi * sd1 * sd2
 
-        
     # Show plot
     if show == True:
 
@@ -583,7 +569,8 @@ def distribution_cases(db, caso):
         #show()
         plt.autoscale()
         plt.legend()
-    
+
+
 def get_all_stats(data, measure):
     """
     DESCRIPCIÓN ESTADISTICA DE TODOS LOS DATOS EN measure
@@ -595,6 +582,7 @@ def get_all_stats(data, measure):
             continue
         SERIES.append(CASES[measure].apply(pd.Series).stack().describe().to_frame(name=condition))
     return pd.concat(SERIES, axis=1).round(5)
+
 
 def distribution_NL(db, caso, area=False):
     caso = str(caso)
@@ -644,7 +632,7 @@ def distribution_NL(db, caso, area=False):
         plt.autoscale()
         plt.legend()
         #plt.savefig(path + figname )
-    
+
 def get_allNL_stats(data, measure):
     """
     DESCRIPCIÓN ESTADISTICA DE TODOS LOS DATOS EN measure
@@ -661,8 +649,10 @@ def get_allNL_stats(data, measure):
 def get_max(DF, col):
     return np.max([np.max(DF[col][i]) for i in DF.index if len(DF[col][i]) > 0])
 
+
 def get_min(DF, col):
     return np.min([np.min(DF[col][i]) for i in DF.index if len(DF[col][i]) > 0])
+
 
 def plot_NL_metrics(DataBases, techniques, conditions, columns):
     """
@@ -733,10 +723,12 @@ def KS_Testing(Databases, conditions):
                     prob = np.sum(ks_test)/len(ks_test)*100
                 print("Porcentaje de Similitud {} %" .format(prob)) 
             print("\n")
-# %%
+
+
 def RunAnalysis():
     #ks_test = stats.kstest()
     pass
+
 
 
 # ====================== Global Values =========================== #
