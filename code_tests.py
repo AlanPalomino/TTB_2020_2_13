@@ -38,6 +38,9 @@ import tensorflow as tf
 from tensorflow import keras
 import umap
 import umap.plot
+%matplotlib inline
+sns.set(style='white', context='notebook', rc={'figure.figsize':(14,10)})
+
 comp_data = pd.read_csv('complete_data.csv')
 MainDF  = pd.DataFrame(comp_data)
 
@@ -197,7 +200,8 @@ pathology = data[['record','cond_id', 'ae_mean',
        'psd_variance', 'psd_skewness', 'psd_spectral_entropy']]
 #pathology
 pathology = pathology.dropna()
-tar_labels =  data['condition'].dropna()
+tar_labels =  data['condition'].dropna().values
+
 # Define train set and targets
 #Group by pathology
 a_f = pathology[pathology["cond_id"] ==0]
@@ -226,7 +230,7 @@ myocardial_i = m_i[['record', 'cond_id',  'ae_mean', 'ae_variance', 'ae_skewness
 
 #Create target array for training
 targets=a_f['cond_id'].tolist()+m_i['cond_id'].tolist()+ c_c['cond_id'].tolist()
-
+labels =dict({"AF":0, "CHF":1, "MI":2})
 #Create input array for training0
 X=pd.concat([atrial_f,myocardial_i, congestive_h ],ignore_index=True)
 X
@@ -240,8 +244,6 @@ import tensorflow as tf
 from tensorflow import keras
 import umap
 import umap.plot
-%matplotlib inline
-sns.set(style='white', context='notebook', rc={'figure.figsize':(14,10)})
 
 """
 umap.UMAP(a=None, angular_rp_forest=False, b=None,
@@ -255,7 +257,7 @@ umap.UMAP(a=None, angular_rp_forest=False, b=None,
      transform_queue_size=4.0, transform_seed=42, unique=False, verbose=False)
 """
 
-for n in (2, 5, 10, 20, 50, 100, 200, 250, 500, 700, 1000):
+for n in (2, 3, 4, 5, 6,10, 20, 50, 80):
    
         reducer = umap.UMAP( n_neighbors=n,min_dist=0.0,n_components=2,random_state=42)
         # Scale Data
@@ -269,12 +271,12 @@ for n in (2, 5, 10, 20, 50, 100, 200, 250, 500, 700, 1000):
         print('Construyendo UMAP...')
         #colors = tar_labels.map({"atrial_fibrilation":0, "myocardial_infarction":2, "congestive_heartfailure":1})
 
-        plt.scatter(embedding[:, 0], embedding[:, 1],c=X.cond_id,cmap='Spectral')
+        plt.scatter(embedding[:, 0], embedding[:, 1],c=X.cond_id,cmap='viridis', label=labels)
         plt.gca().set_aspect('equal', 'datalim')
         #plt.colorbar(boundaries=np.arange(3)-0.5).set_ticks(np.arange(3))
         #plt.title('UMAP projection of the Digits dataset', fontsize=24);
         plt.title('Proyección de UMAP n= {}'.format(n), fontsize=24)
-        
+        plt.legend()
         plt.show()
 #embedding.shape
 
@@ -291,7 +293,7 @@ outlying_cases.shape
 #%%
 # =============== Run only in server!!!!  ============================
 
-sns.pairplot(pathology, hue='cond_id')
+sns.pairplot(X, hue='cond_id')
 # %%
 #colors = pd.Series(tar_labels).map({"atrial_fibrilation":0, "myocardial_infarction":2, "congestive_heartfailure":1})
 
