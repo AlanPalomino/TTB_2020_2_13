@@ -48,6 +48,11 @@ def get_hurst(rr):
     H, _, _ = compute_Hc(rr)
     return H
 
+
+def get_poincare_ratio(rr):
+    return get_poincare_plot_features(rr)['ratio_sd2_sd1']
+
+
 # ================= Importando Bases de Datos
 class Case():
     """
@@ -305,13 +310,9 @@ class Record():
 
         a, s, h, d, p = nonLinearWindowing(self.rr_int)
         self.N_LINEAR = {
-            "app_ent": a,
-            "samp_ent": s,
-            "hfd": h,
-            "dfa": d,
-            "poin": p
+            m["tag"]: t for m, t in zip(NL_METHODS,
+                                        nonLinearWindowing(self.rr_int))
         }
-
         print(f' > < Record {self.name} - Non linear analysis done.')
         return True
 
@@ -368,7 +369,6 @@ def nonLinearWindowing(rr_signal: np.ndarray):
 
     rr_signal   :: RR vector of time in seconds
     """
-    app_ent, samp_ent, hfd, dfa, poin = list(), list(), list(), list(), list()
     DATA_TABLES = [list() for M in NL_METHODS]
 
     for idx in range(0, len(rr_signal)-RR_WLEN, RR_STEP):
@@ -733,8 +733,8 @@ def RunAnalysis():
 
 # ====================== Global Values =========================== #
 
-RR_WLEN = 1024
-RR_OVER = 0.95
+RR_WLEN = 1000
+RR_OVER = 0.5
 RR_STEP = int(RR_WLEN * (1 - RR_OVER))
 RR_WINDOW_THRESHOLD = RR_WLEN * 6   # Mínimo número de datos que requiere un registro rr para ser válido.
 
@@ -763,7 +763,12 @@ NL_METHODS = [
     },{
         "name": "Poincaré SD Ratio",
         "tag": "psd",
-        "func": poincare_ratio,
+        "func": get_poincare_ratio,
+        "args": dict()
+    },{
+        "name": "Hurst",
+        "tag": "hst",
+        "func": get_hurst,
         "args": dict()
     }
 ]
