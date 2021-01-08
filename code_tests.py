@@ -32,7 +32,7 @@ import re
 
 
 # %%
-from main import MainDF, MainDummy
+from main import MainDF
 # %%
 """ ANÁLISIS ESPECTRAL USANDO WAVELETS"""
 def WaveletPowerSpectrum():
@@ -180,7 +180,7 @@ def WaveletPowerSpectrum():
 # %%
 data = MainDF.sample(frac=1.0)
 #Clean dataset
-pathology = data[['record','cond_id', 'hurst', 'ae_mean',
+pathology = data[['record','cond_id', 'ae_mean',
        'ae_variance', 'ae_skewness', 'ae_spectral_entropy', 'se_mean',
        'se_variance', 'se_skewness', 'se_spectral_entropy', 'hfd_mean',
        'hfd_variance', 'hfd_skewness', 'hfd_spectral_entropy', 'dfa_mean',
@@ -196,19 +196,19 @@ c_c = pathology[pathology["cond_id"] ==1][0:1190]
 m_i = pathology[pathology["cond_id"] ==2][0:1190]
 
 #Extract important metrics
-atrial_f = a_f[['record', 'cond_id', 'hurst', 'ae_mean', 'ae_variance', 'ae_skewness',
+atrial_f = a_f[['record', 'cond_id', 'ae_mean', 'ae_variance', 'ae_skewness',
        'ae_spectral_entropy', 'se_mean', 'se_variance', 'se_skewness',
        'se_spectral_entropy', 'hfd_mean', 'hfd_variance', 'hfd_skewness',
        'hfd_spectral_entropy', 'dfa_mean', 'dfa_variance', 'dfa_skewness',
        'dfa_spectral_entropy', 'psd_mean', 'psd_variance', 'psd_skewness',
        'psd_spectral_entropy']]
-congestive_h = c_c[['record', 'cond_id', 'hurst', 'ae_mean', 'ae_variance', 'ae_skewness',
+congestive_h = c_c[['record', 'cond_id',  'ae_mean', 'ae_variance', 'ae_skewness',
        'ae_spectral_entropy', 'se_mean', 'se_variance', 'se_skewness',
        'se_spectral_entropy', 'hfd_mean', 'hfd_variance', 'hfd_skewness',
        'hfd_spectral_entropy', 'dfa_mean', 'dfa_variance', 'dfa_skewness',
        'dfa_spectral_entropy', 'psd_mean', 'psd_variance', 'psd_skewness',
        'psd_spectral_entropy']]
-myocardial_i = m_i[['record', 'cond_id', 'hurst', 'ae_mean', 'ae_variance', 'ae_skewness',
+myocardial_i = m_i[['record', 'cond_id',  'ae_mean', 'ae_variance', 'ae_skewness',
        'ae_spectral_entropy', 'se_mean', 'se_variance', 'se_skewness',
        'se_spectral_entropy', 'hfd_mean', 'hfd_variance', 'hfd_skewness',
        'hfd_spectral_entropy', 'dfa_mean', 'dfa_variance', 'dfa_skewness',
@@ -242,6 +242,8 @@ from tensorflow import keras
 import umap
 import umap.plot
 
+sns.set(style='white', context='notebook', rc={'figure.figsize':(14,10)})
+
 reducer = umap.UMAP()
 # Scale Data
 get_data = X.values
@@ -250,6 +252,20 @@ print('Forma de Datos escalados: {}'.format(scaled_data.shape))
 # Reduce data
 embedding = reducer.fit_transform(scaled_data)
 print('Forma de Datos reducidos: {}'.format(embedding.shape))
+
+colors = np.array().map(["atrial_fibrilation", "myocardial_infarction", "congestive_heartfailure"])
+# %% 
+# =============== Run only in server!!!!  ============================
+
+sns.pairplot(pathology, hue='cond_id')
+# %%
+#colors = pd.Series(tar_labels).map({"atrial_fibrilation":0, "myocardial_infarction":2, "congestive_heartfailure":1})
+
+plt.scatter(embedding[:, 0], embedding[:, 1], cmap='Spectral')
+plt.gca().set_aspect('equal', 'datalim')
+plt.colorbar(boundaries=np.arange(5)-0.5).set_ticks(np.arange(3))
+#plt.title('UMAP projection of the Digits dataset', fontsize=24);
+plt.title('Proyección de UMAP de Patologías', fontsize=24)
 #embedding.shape
 # %%
 #================ AREA UNDER THE CURVE =======================================
@@ -305,3 +321,17 @@ plt.show()
 #================= PCA =====================================#
 # %%
 #================= LDA =====================================#
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+from sklearn.model_selection import train_test_split
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
+sc = StandardScaler()
+X_train = sc.fit_transform(X_train)
+X_test = sc.transform(X_test)
+
+
+lda = LDA(n_components=1)
+X_train = lda.fit_transform(X_train, y_train)
+X_test = lda.transform(X_test)
+
+
