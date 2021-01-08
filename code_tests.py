@@ -31,8 +31,17 @@ import os
 import re
 
 
-# %%
-from main import MainDF
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+import sklearn.neighbors
+import tensorflow as tf
+from tensorflow import keras
+import umap
+import umap.plot
+comp_data = pd.read_csv('complete_data.csv')
+MainDF  = pd.DataFrame(comp_data)
+
+#from main import MainDF
 # %%
 """ ANÁLISIS ESPECTRAL USANDO WAVELETS"""
 def WaveletPowerSpectrum():
@@ -188,7 +197,7 @@ pathology = data[['record','cond_id', 'ae_mean',
        'psd_variance', 'psd_skewness', 'psd_spectral_entropy']]
 #pathology
 pathology = pathology.dropna()
-tar_labels =  data['condition']
+tar_labels =  data['condition'].dropna()
 # Define train set and targets
 #Group by pathology
 a_f = pathology[pathology["cond_id"] ==0]
@@ -221,17 +230,7 @@ targets=a_f['cond_id'].tolist()+m_i['cond_id'].tolist()+ c_c['cond_id'].tolist()
 #Create input array for training0
 X=pd.concat([atrial_f,myocardial_i, congestive_h ],ignore_index=True)
 X
-#MainDF.shape
 
-#Datmat = MainDF.copy()
-#del Datmat['case']
-#Datmat.dropna()
-#Datmat.info()
-# Transformations
-#Datmat['cond'].astype(np.int32)
-#Datmat['ae_m'].astype('float32')
-#Data =np.float32(Datmat.to_numpy()).reshape(-13,15117)
-#np.shape(Data)
 
 # %%
 #================= UMAP =====================================#
@@ -241,32 +240,62 @@ import tensorflow as tf
 from tensorflow import keras
 import umap
 import umap.plot
-
+%matplotlib inline
 sns.set(style='white', context='notebook', rc={'figure.figsize':(14,10)})
 
-reducer = umap.UMAP()
-# Scale Data
-get_data = X.values
-scaled_data = StandardScaler().fit_transform(get_data)
-print('Forma de Datos escalados: {}'.format(scaled_data.shape))
-# Reduce data
-embedding = reducer.fit_transform(scaled_data)
-print('Forma de Datos reducidos: {}'.format(embedding.shape))
+"""
+umap.UMAP(a=None, angular_rp_forest=False, b=None,
+     force_approximation_algorithm=False, init='spectral', learning_rate=1.0,
+     local_connectivity=1.0, low_memory=False, metric='euclidean',
+     metric_kwds=None, min_dist=0.1, n_components=2, n_epochs=None,
+     n_neighbors=3, negative_sample_rate=5, output_metric='euclidean',
+     output_metric_kwds=None, random_state=42, repulsion_strength=1.0,
+     set_op_mix_ratio=1.0, spread=1.0, target_metric='categorical',
+     target_metric_kwds=None, target_n_neighbors=-1, target_weight=0.5,
+     transform_queue_size=4.0, transform_seed=42, unique=False, verbose=False)
+"""
 
-colors = np.array().map(["atrial_fibrilation", "myocardial_infarction", "congestive_heartfailure"])
+for n in (2, 5, 10, 20, 50, 100, 200, 250, 500, 700, 1000):
+   
+        reducer = umap.UMAP( n_neighbors=n,min_dist=0.0,n_components=2,random_state=42)
+        # Scale Data
+        get_data = X.values
+        scaled_data = StandardScaler().fit_transform(get_data)
+        #print('Forma de Datos escalados: {}'.format(scaled_data.shape))
+        # Reduce data
+        embedding = reducer.fit_transform(scaled_data)
+        print('Reduciendo datos...')
+        #print('Forma de Datos reducidos: {}'.format(embedding.shape))
+        print('Construyendo UMAP...')
+        #colors = tar_labels.map({"atrial_fibrilation":0, "myocardial_infarction":2, "congestive_heartfailure":1})
+
+        plt.scatter(embedding[:, 0], embedding[:, 1],c=X.cond_id,cmap='Spectral')
+        plt.gca().set_aspect('equal', 'datalim')
+        #plt.colorbar(boundaries=np.arange(3)-0.5).set_ticks(np.arange(3))
+        #plt.title('UMAP projection of the Digits dataset', fontsize=24);
+        plt.title('Proyección de UMAP n= {}'.format(n), fontsize=24)
+        
+        plt.show()
+#embedding.shape
+
+# %%
+
+#umap.plot.points(embedding)
+%time
+outlier_scores = sklearn.neighbors.LocalOutlierFactor(contamination=0.001428).fit_predict(X)
+#colors = np.array().map(["atrial_fibrilation", "myocardial_infarction", "congestive_heartfailure"])
 # %% 
+outlying_cases = X[outlier_scores == -1]
+outlying_cases.shape
+
+#%%
 # =============== Run only in server!!!!  ============================
 
 sns.pairplot(pathology, hue='cond_id')
 # %%
 #colors = pd.Series(tar_labels).map({"atrial_fibrilation":0, "myocardial_infarction":2, "congestive_heartfailure":1})
 
-plt.scatter(embedding[:, 0], embedding[:, 1], cmap='Spectral')
-plt.gca().set_aspect('equal', 'datalim')
-plt.colorbar(boundaries=np.arange(5)-0.5).set_ticks(np.arange(3))
-#plt.title('UMAP projection of the Digits dataset', fontsize=24);
-plt.title('Proyección de UMAP de Patologías', fontsize=24)
-#embedding.shape
+
 # %%
 #================ AREA UNDER THE CURVE =======================================
 from sklearn import metrics
