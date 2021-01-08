@@ -32,128 +32,153 @@ import re
 
 
 # %%
-@profile
-def Load():
-    RECORD_DIRS = list(Path("./Data").glob("*p00*"))
-    for record_dir in RECORD_DIRS:
-        record_name = re.search("p[0-9]{6}", str(record_dir))[0]
-        case = Case(record_dir.joinpath(record_name))
-        case2 = Case2(record_dir.joinpath(record_name))
-        break
-
-Load()
-
-# %%
-#================= pyHRV Testing ================================
-
-
-# %%
-RECORD_DIRS = list(Path("./Data").glob("*p00*"))
-CASES = list()
-for record_dir in RECORD_DIRS:
-    record_name = re.search("p[0-9]{6}", str(record_dir))[0]
-    c = Case(record_dir.joinpath(record_name))
-    CASES.append(c)
-    print(c)
-
-data = list()
-for data_file in os.listdir("./Data_Jsons"):
-    with open("./Data_Jsons/"+data_file) as file:
-        mixed = json.load(file)
-        appr = [reg for reg in mixed if reg["approved"]]
-        data.extend(appr)
-        print(f"{data_file} has {len(appr)}/{len(mixed)} approved cases")
-data = pd.DataFrame(data)
-data["rr"] = data.apply(lambda case: np.array(case["rr"])/case["fs"], axis=1)
-data["rr"] = data["rr"].apply(lambda signal: signal[np.where(signal < 2)])
-data["length"] = data["rr"].apply(lambda signal: len(signal))
-
-print("Seleccion de casos aprobados...")
-num_cases = 15
-# AF - Atrial Fibrilation
-AF_CASES = data[(data["conditon"] == "AF") & (data["length"] > 1000)][:num_cases]
-# CHF - Congestive Heart Failure
-CHF_CASES = data[(data["conditon"] == "CHF") & (data["length"] > 1000)][:num_cases]
-# HC - Healthy Controls
-HC_CASES = data[(data["conditon"] == "HC") & (data["length"] > 1000)][:num_cases]
-# AR - Arrhythmia Cases
-AR_CASES = data[(data["conditon"] == "AR") & (data["length"] > 1000)][:num_cases]   # NO HAY CASOS QUE CUMPLAN 
-# MI - Myocardial Infarction
-MI_CASES = data[(data["conditon"] == "MI") & (data["length"] > 1000)][:num_cases]   # NO HAY CASOS QUE CUMPLAN
-
-print(f"""
-AF CASES: {len(AF_CASES)}
-CHF CASES: {len(CHF_CASES)}
-HC CASES: {len(HC_CASES)}
-AR CASES: {len(AR_CASES)}
-MI CASES: {len(MI_CASES)}
-""")
-# %%
-# Get R-peaks series using biosppy
-rr = np.array(HC_CASES.iloc[0,2])
-
-# Compute Poincaré using R-peak series
-results = nl.poincare(rpeaks=rr)
-
-# Show the scatter plot without the fitted ellipse, the SD1 & SD2 vectors and the legend
-results = nl.poincare(rr, ellipse=False, vectors=False, legend=False)
-# %%
-# Import packages
-import pyhrv
-import pyhrv.nonlinear as nl
-
-# Load sample data
-#nni = pyhrv.utils.load_sample_nni()
-#rr = np.array(AF_CASES.iloc[0,2])
-rr = np.array(HC_CASES.iloc[0,2])
-
-# Compute Poincaré using NNI series
-results = nl.poincare(rr,show=True,ellipse=True,vectors=True,legend=True)
-#results = Windowing.poincarePlot(rr,show=False,ellipse=False,vectors=False,legend=False)
-# Print SD1
-print(results)
-# %%
-# Import packages
-import biosppy
-import pyhrv.time_domain as td
-from opensignalsreader import OpenSignalsReader
-
-# Load sample ECG signal stored in an OpenSignals file
-#acq = OpenSignalsReader('SampleECG.txt')
-# signal = OpenSignalsReader('SampleECG.txt').signal('ECG')
-
-# Get R-peaks series using biosppy
-#rpeaks = biosppy.signals.ecg.ecg(signal)[2]
-
-# Compute Poincaré using R-peak series
-results = nl.poincare(rpeaks=rr)
-# %%
-# PRUEBAS DE MÉTRICAS NO LINEALES PARA UNA SEÑAL.
-
-import pyhrv.nonlinear as nl
-from entropy import *
-import pyhrv
-
-rr = np.array(AF_CASES.iloc[0,2])
-# %%
-# Combinaciones
-
-from itertools import combinations 
-
-dists = ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O"]
-
-comb = list(combinations(dists, 2))
-for i in range(len(comb)):
-    pair = comb[i]
-    print("Combina {}  con {}." .format(pair[0],pair[1]))
-# %%
 from main import MainDF, MainDummy
+# %%
+""" ANÁLISIS ESPECTRAL USANDO WAVELETS"""
 
+from __future__ import division
+import numpy
+from matplotlib import pyplot
+import pycwt as wavelet
+from pycwt.helpers import find
+
+# Definir parámetros de la señal
+
+dat = numpy.array(MainDummy.iloc[40]['rr'])
+record = str(MainDummy.iloc[40]['record'])
+cond = str(MainDummy.iloc[40]['conditon'])
+#url = 'http://paos.colorado.edu/research/wavelets/wave_idl/nino3sst.txt'
+#dat = numpy.genfromtxt(url, skip_header=19)
+title = 'Señal de HRV_record ['+ record +'] Condition: ['+cond+ ']'
+label = 'HRV'
+units = 'mV'
+t0 = 1871.0
+dt = 0.25  # In years
+
+# Time array
+N = dat.size
+t = numpy.arange(0, N) * dt + t0
+
+# detrend and normalize the input data
+p = numpy.polyfit(t - t0, dat, 1)
+dat_notrend = dat - numpy.polyval(p, t - t0)
+std = dat_notrend.std()  # Standard deviation
+var = std ** 2  # Variance
+dat_norm = dat_notrend / std  # Normalized dataset
+
+# Parameters of wavelet analysis andMother Wavelet selection with w=6
+
+mother = wavelet.Morlet(6)
+s0 = 2 * dt  # Starting scale, in this case 2 * 0.25 years = 6 months
+dj = 1 / 12  # Twelve sub-octaves per octaves
+J = 7 / dj  # Seven powers of two with dj sub-octaves
+alpha, _, _ = wavelet.ar1(dat)  # Lag-1 autocorrelation for red noise
+
+# Wavelet transform and inverse wavelet transform
+wave, scales, freqs, coi, fft, fftfreqs = wavelet.cwt(dat_norm, dt, dj, s0, J,mother)
+iwave = wavelet.icwt(wave, scales, dt, dj, mother) * std
+
+# Normalized wavelet and Fourier power spectra
+
+power = (numpy.abs(wave)) ** 2
+fft_power = numpy.abs(fft) ** 2
+period = 1 / freqs
+power /= scales[:, None]
+
+# Power spectra significance test
+signif, fft_theor = wavelet.significance(1.0, dt, scales, 0, alpha,
+                                         significance_level=0.95,
+                                         wavelet=mother)
+sig95 = numpy.ones([1, N]) * signif[:, None]
+sig95 = power / sig95
+
+# Global wavelet spectrum
+glbl_power = power.mean(axis=1)
+dof = N - scales  # Correction for padding at edges
+glbl_signif, tmp = wavelet.significance(var, dt, scales, 1, alpha,
+                                        significance_level=0.95, dof=dof,
+                                        wavelet=mother)
+sel = find((period >= 2) & (period < 8))
+Cdelta = mother.cdelta
+scale_avg = (scales * numpy.ones((N, 1))).transpose()
+scale_avg = power / scale_avg  # As in Torrence and Compo (1998) equation 24
+scale_avg = var * dj * dt / Cdelta * scale_avg[sel, :].sum(axis=0)
+scale_avg_signif, tmp = wavelet.significance(var, dt, scales, 2, alpha,
+                                             significance_level=0.95,
+                                             dof=[scales[sel[0]],
+                                                  scales[sel[-1]]],
+                                             wavelet=mother)
+
+# Prepare the figure
+pyplot.close('all')
+pyplot.ioff()
+figprops = dict(figsize=(11, 8), dpi=72)
+fig = pyplot.figure(**figprops)
+
+# First sub-plot, the original time series anomaly and inverse wavelet
+# transform.
+ax = pyplot.axes([0.1, 0.75, 0.65, 0.2])
+ax.plot(t, iwave, '-', linewidth=1, color=[0.5, 0.5, 0.5])
+ax.plot(t, dat, 'k', linewidth=1.5)
+ax.set_title('a) {}'.format(title))
+ax.set_ylabel(r'{} [{}]'.format(label, units))
+
+# Second sub-plot, the normalized wavelet power spectrum and significance
+# level contour lines and cone of influece hatched area. Note that period
+# scale is logarithmic.
+bx = pyplot.axes([0.1, 0.37, 0.65, 0.28], sharex=ax)
+levels = [0.0625, 0.125, 0.25, 0.5, 1, 2, 4, 8, 16]
+bx.contourf(t, numpy.log2(period), numpy.log2(power), numpy.log2(levels),
+            extend='both', cmap=pyplot.cm.viridis)
+extent = [t.min(), t.max(), 0, max(period)]
+bx.contour(t, numpy.log2(period), sig95, [-99, 1], colors='k', linewidths=2,
+           extent=extent)
+bx.fill(numpy.concatenate([t, t[-1:] + dt, t[-1:] + dt,
+                           t[:1] - dt, t[:1] - dt]),
+        numpy.concatenate([numpy.log2(coi), [1e-9], numpy.log2(period[-1:]),
+                           numpy.log2(period[-1:]), [1e-9]]),
+        'k', alpha=0.3, hatch='x')
+bx.set_title('b) {} Espectro de Potencia Wavelet- WPS ({})'.format(label, mother.name))
+bx.set_ylabel('Periodo (s)')
+#
+Yticks = 2 ** numpy.arange(numpy.ceil(numpy.log2(period.min())),
+                           numpy.ceil(numpy.log2(period.max())))
+bx.set_yticks(numpy.log2(Yticks))
+bx.set_yticklabels(Yticks)
+
+# Third sub-plot, the global wavelet and Fourier power spectra and theoretical
+# noise spectra. Note that period scale is logarithmic.
+cx = pyplot.axes([0.77, 0.37, 0.2, 0.28], sharey=bx)
+cx.plot(glbl_signif, numpy.log2(period), 'k--')
+cx.plot(var * fft_theor, numpy.log2(period), '--', color='#cccccc')
+cx.plot(var * fft_power, numpy.log2(1./fftfreqs), '-', color='#cccccc',
+        linewidth=1.)
+cx.plot(var * glbl_power, numpy.log2(period), 'k-', linewidth=1.5)
+cx.set_title('c) Espectro Global de Wavelet')
+cx.set_xlabel(r'Power [({})^2]'.format(units))
+cx.set_xlim([0, glbl_power.max() + var])
+cx.set_ylim(numpy.log2([period.min(), period.max()]))
+cx.set_yticks(numpy.log2(Yticks))
+cx.set_yticklabels(Yticks)
+pyplot.setp(cx.get_yticklabels(), visible=False)
+
+# Fourth sub-plot, the scale averaged wavelet spectrum.
+dx = pyplot.axes([0.1, 0.07, 0.65, 0.2], sharex=ax)
+dx.axhline(scale_avg_signif, color='k', linestyle='--', linewidth=1.)
+dx.plot(t, scale_avg, 'k-', linewidth=1.5)
+dx.set_title('d) {}--{} seconds scale-averaged power'.format(2, 8))
+dx.set_xlabel('Time (s)')
+dx.set_ylabel(r'Average variance [{}]'.format(units))
+ax.set_xlim([t.min(), t.max()])
+
+pyplot.show()
+
+# %%
 data = MainDF.sample(frac=1.0)
 #Clean dataset
 pathology = data[["cond","ae_m","ae_v","se_m","se_v","hfd_m","hfd_v","dfa_m","dfa_v","psd_m","psd_v"]]
 #pathology
-tar_labels =
+tar_labels =['AF','CHF','IM']
 # Define train set and targets
 #Group by pathology
 a_f=pathology[pathology["cond"] ==0]
@@ -191,7 +216,7 @@ import umap.plot
 #digits = load_digits()
 
 mapper = umap.UMAP().fit(X)
-umap.plot.points(mapper, labels=targets)
+umap.plot.points(mapper, labels=tar_labels)
 # %%
 digits_df = pd.DataFrame(digits.data[:,1:11])
 digits_df['digit'] = pd.Series(digits.target).map(lambda x: 'Digit {}'.format(x))
@@ -210,3 +235,53 @@ data = MainDummy.to_numpy()
 mapper = umap.UMAP().fit(data)
 #umap.plot.points(mapper, labels=digits.target)
 # %%
+# AREA UNDER THE CURVE
+from sklearn import metrics
+y = np.array([1, 1, 2, 2])
+pred = np.array([0.1, 0.4, 0.35, 0.8])
+fpr, tpr, thresholds = metrics.roc_curve(y, pred, pos_label=2)
+metrics.auc(fpr, tpr)
+
+# %%
+hist = np.histogram(MainDummy.iloc[0]['SampEn'])
+
+
+# %% 
+"""Holt-Winters (Triple Exponential Smoothing)"""
+
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
+
+fit = ExponentialSmoothing(data, seasonal_periods=periodicity, trend='add', seasonal='add').fit(use_boxcox=True)
+fit.fittedvalues.plot(color='blue')
+fit.forecast(5).plot(color='green')
+plt.show()
+# %% 
+from statsmodels.tsa.arima_model import ARIMA
+from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import train_test_split
+
+p = 5  # lag
+d = 1  # difference order
+q = 0  # size of moving average window
+
+Y = np.array(hist[1]).astype('float32')
+
+train, test = train_test_split(Y, test_size=0.20, shuffle=False)
+history = train.tolist()
+predictions = []
+
+for t in range(len(test)):
+	model = ARIMA(history, order=(p,d,q))
+	fit = model.fit(disp=False)
+	pred = fit.forecast()[0]
+  
+	predictions.append(pred)
+	history.append(test[t])
+  
+print('MSE: %.3f' % mean_squared_error(test, predictions))
+
+plt.plot(test)
+plt.plot(predictions, color='red')
+plt.show()
+# %%
+!
