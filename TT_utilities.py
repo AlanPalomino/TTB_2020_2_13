@@ -53,7 +53,11 @@ def get_hurst(rr):
 
 def get_poincare_ratio(rr):
     return get_poincare_plot_features(rr)['ratio_sd2_sd1']
- 
+
+
+def get_sample_entropy(rr):
+    return get_sampen(rr)["sampen"]
+
 
 # ================= Importando Bases de Datos
 class Case():
@@ -301,13 +305,12 @@ class Record():
             if len(self.rr_int) < RR_WINDOW_THRESHOLD:
                 print(f' > X Record {self.name} - Analysis not possible, rr too short.')
                 return False
-            self.hurst = get_hurst(self.rr_int)
+            # self.hurst = get_hurst(self.rr_int)
 
         # HRVANALYSIS SECTION
-        self.time_domain = get_time_domain_features(self.rr_temp)
-        self.freq_domain = get_frequency_domain_features(self.rr_temp)
-        self.poin_features = get_poincare_plot_features(self.rr_temp)
-        self.samp_entropy = get_sampen(self.rr_temp)
+        # self.time_domain = get_time_domain_features(self.rr_temp)
+        # self.freq_domain = get_frequency_domain_features(self.rr_temp)
+        # self.samp_entropy = get_sampen(self.rr_temp)
         # END OF SECTION
 
         self.N_LINEAR = {
@@ -735,7 +738,7 @@ def RunAnalysis():
 
 # ====================== Global Values =========================== #
 
-RR_WLEN = 1000
+RR_WLEN = 2500
 RR_OVER = 0.5
 RR_STEP = int(RR_WLEN * (1 - RR_OVER))
 RR_WINDOW_THRESHOLD = RR_WLEN * 6   # Mínimo número de datos que requiere un registro rr para ser válido.
@@ -750,8 +753,8 @@ NL_METHODS = [
     },{
         "name": "Sample Entropy",
         "tag": "se",
-        "func": entropy.sample_entropy,
-        "args": dict(order=2, metric='chebyshev')
+        "func": get_sample_entropy,
+        "args": dict()
     },{
         "name": "Higuchi Fractal Dimension",
         "tag": "hfd",
@@ -774,3 +777,4 @@ NL_METHODS = [
         "args": dict()
     }
 ]
+

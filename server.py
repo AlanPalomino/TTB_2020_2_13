@@ -1,15 +1,41 @@
-from TT_utilities import Case, NL_METHODS, RR_WLEN
+from TT_utilities import Case, NL_METHODS
 from TT_utilities import Record
 from multiprocessing import Pool
 from scipy.stats import stats
 from pathlib import Path
 from entropy import spectral_entropy
 from hurst import compute_Hc
+import TT_utilities
 import pandas as pd
 import numpy as np
 import pickle
 import sys
+import os
 import re
+
+
+CSV_COLS = [
+    'case',
+    'record',
+    'condition',
+    'cond_id',
+    'length'
+]
+for m in NL_METHODS:
+    CSV_COLS.extend([
+        m['tag'] + '_mean',
+        m['tag'] + '_variance',
+        m['tag'] + '_skewness',
+        m['tag'] + '_spectral_entropy',
+    ])
+
+
+COND_ID = dict(
+    atrial_fibrillation=0,
+    congestive_heartfailure=1,
+    myocardial_infarction=2
+)
+
 
 
 def hurst_eval(rr):
@@ -18,35 +44,9 @@ def hurst_eval(rr):
 
 
 def generate_csv():
-    condition_ids = dict(
-        atrial_fibrillation=0,
-        congestive_heartfailure=1,
-        myocardial_infarction=2
-    )
-    cases_list = unpickle_data()
+    condition_ids =     cases_list = unpickle_data()
     csv_name = 'complete_data.csv'
-    columns = [
-        'case',
-        'record',
-        'condition',
-        'cond_id',
-        'hurst',
-        'cvnni',
-        'cvsd',
-        'mean_nni',
-        'lf_hf_ratio',
-        'total_power',
-        'ratio_sd2_sd1',
-        'sampen',
-    ]
-    for m in NL_METHODS:
-        columns.extend([
-            m['tag'] + '_mean',
-            m['tag'] + '_variance',
-            m['tag'] + '_skewness',
-            m['tag'] + '_spectral_entropy'
-        ])
-    FULL_CSV = pd.DataFrame(columns=columns)
+    FULL_CSV = pd.DataFrame(columns=CSV_COLS)
     for c in cases_list:
         print(f"    > Case {c._case_name}")
         for r in c:
@@ -112,11 +112,6 @@ def gen_name(path):
 def pickle_data():
     RECORD_DIRS = list(Path("./Data").glob("*_p0*")) 
     RECORD_DIRS = [gen_name(p) for p in RECORD_DIRS]
-    try:
-        RECORD_DIRS = RECORD_DIRS[:int(sys.argv[2])]
-        print(f'About to pickle first {len(RECORD_DIRS)} cases')
-    except IndexError:
-        print(f'About to pickle full data')
 
     p = Pool()
     p.map(process_case, RECORD_DIRS)
@@ -131,24 +126,94 @@ def help():
           """)
     for opt in OPTS:
         print(f"{', '.join(opt['opts'])} :")
-        print(f"\n{opt['desc']}")
+        print(f"\t{opt['desc']}\n")
+
+
+def test_unpickle(parent):
+    unpickled_cases = list()
+    for d in parent.glob('*.pkl'):
+        with d.open('rb') as pf:
+            unpickled_cases.append(
+                pickle.load(pf)
+            )
+    return unpickled_cases
+
+
+def save_test():
+    TEST_DIRS = list(Path('.').glob('Test_*ws/'))
+    for td in TEST_DIRS:
+        t_cases = test_unpickle(td)
+
+        pdir = "Test/"
+
+        csv_name = pdir + td.stem + '.csv'
+        pkl_name = pdir + td.stem + '.pkl'
+
+        csv_data = pd.DataFrame(columns=CSV_COLS)
+        pkl_data = pd.DataFrame(columns=CSV_COLS[:5])
+
+        for c in t_cases:
+            for r in c:
+                # Process for CSV
+                values = list()
+                row_data = [
+                    c._case_name,
+                    r.name,
+                    c.pathology,
+                    COND_ID[c.pathology],
+                    len(r.rr_int),
+                ]
+                for k, v in r.N_LINEAR.items():
+                    s = stats.describe(v)
+                    row_data.extend([
+                        s[2],
+                        s[3],
+                        s[4],
+                        spectral_entropy(v, sf=r.fs, method='fft')
+                    ])
+                csv_data = csv_data.append(
+                    pd.Series(
+                        data=row_data,
+                        index=CSV_COLS,
+                    ), ignore_index=True
+                )
+                # Process for pickle
+                pkl_row = {
+                    'case': c._case_name,
+                    'record': r.name,
+                    'condition': c.pathology,
+                    'cond_id': COND_ID[c.pathology],
+                    'length': len(r.rr_int)
+                }
+                pkl_row.update(r.N_LINEAR)
+                pkl_data = pkl_data.append(pd.DataFrame(pkl_row))
+
+        # DATA IS SAVED IN BOTH FORMATS
+        csv_data.to_csv(csv_name, index=False)
+        with open(pkl_name, 'wb') as pf:
+            pickle.dump(pkl_data, pf)
 
 
 def test_case(ddir: Path):
     c = Case(ddir)
     c.process()
-    print(f'\n\n\tTEST CASE with {len(c)} records processed and saved to: case_{c._case_name}.pkl\n\n')
-    if len(c) > 0:
-        with open(f'Test_{RR_WLEN}ws/case_{c._case_name}.pkl', 'wb') as pf:
+    if len(c) != 0:
+        with open(f'Test_{TT_utilities.RR_WLEN}ws/case_{c._case_name}.pkl', 'wb') as pf:
             pickle.dump(c, pf)
+        print(f'\n\n\tTEST CASE with {len(c)} records processed and saved to: case_{c._case_name}.pkl\n\n')
 
 
 def run_test():
     n = int(sys.argv[2])
-    
+
     af_dirs = list(Path('Data/').glob('atrial_fibrillation_p*'))[:n]
     mi_dirs = list(Path('Data/').glob('myocardial_infarction_p*'))[:n]
     ch_dirs = list(Path('Data/').glob('congestive_heartfailure_p*'))[:n]
+
+    try:
+        os.mkdir(f"Test_{TT_utilities.RR_WLEN}ws/")
+    except FileExistsError:
+        print("REWRITING TEST VALUES")
 
     data_dirs = [ gen_name(d) for d in af_dirs + mi_dirs + ch_dirs]
 
@@ -189,6 +254,10 @@ OPTS = [
         'opts': ['-rt', '--run_test'],
         'desc': 'Run selected test with [n] number of cases per pathology.',
         'func': run_test
+    },{
+        'opts': ['-st', '--save_test'],
+        'desc': 'Recounts each data compendium and generates a csv file.',
+        'func': save_test
     }
 ]
 
