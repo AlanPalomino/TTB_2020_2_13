@@ -38,8 +38,10 @@ import tensorflow as tf
 from tensorflow import keras
 import umap
 import umap.plot
+
+#from main import MainDummy
 %matplotlib inline
-sns.set(style='white', context='notebook', rc={'figure.figsize':(14,10)})
+sns.set(style='white', context='notebook',palette='muted', rc={'figure.figsize':(14,10)})
 
 comp_data = pd.read_csv('complete_data.csv')
 MainDF  = pd.DataFrame(comp_data)
@@ -257,7 +259,7 @@ umap.UMAP(a=None, angular_rp_forest=False, b=None,
      transform_queue_size=4.0, transform_seed=42, unique=False, verbose=False)
 """
 
-for n in (2, 3, 4, 5, 6,10, 20, 50, 80):
+for n in (2, 3, 4, 5, 6, 7, 8, 9, 10):
    
         reducer = umap.UMAP( n_neighbors=n,min_dist=0.0,n_components=2,random_state=42)
         # Scale Data
@@ -364,5 +366,58 @@ X_test = sc.transform(X_test)
 lda = LDA(n_components=1)
 X_train = lda.fit_transform(X_train, y_train)
 X_test = lda.transform(X_test)
+# %%
+from sklearn.ensemble import RandomForestClassifier
+
+classifier = RandomForestClassifier(max_depth=2, random_state=0)
+
+classifier.fit(X_train, y_train)
+y_pred = classifier.predict(X_test)
 
 
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import accuracy_score
+
+cm = confusion_matrix(y_test, y_pred)
+print(cm)
+print('Accuracy' + str(accuracy_score(y_test, y_pred)))
+# %%
+
+#============== LSTM Autoencoder =======================
+
+# EXAMPLE
+from arff2pandas import a2p
+
+#!gdown --id 16MIleqoIr1vYxlGk4GKnGmrsCPuWkkpT
+
+#!unzip -qq ECG5000.zip
+
+with open('ECG5000_TRAIN.arff') as f:
+  train = a2p.load(f)
+
+with open('ECG5000_TEST.arff') as f:
+  test = a2p.load(f)
+# %%
+
+from kenchi.outlier_detection.statistical import HBOS
+
+hbos = HBOS(novelty=True).fit(X)
+y_pred = hbos.predict(X)
+# %%
+from keras.models import Sequential
+from keras.layers import LSTM, Dense
+from sklearn.metrics import mean_squared_error
+
+timesteps = window_size-1
+n_features = 1
+
+model = Sequential()
+model.add(LSTM(16, activation='relu', input_shape=(timesteps, n_features), return_sequences=True))
+model.add(LSTM(16, activation='relu'))
+model.add(Dense(1))
+model.compile(optimizer='adam', loss='mse')
+
+model.fit(X_train, y_train, epochs=30, batch_size=32)
+y_pred = model.predict(X_test)
+print("MSE:", mean_squared_error(y_test, y_pred))
+# %%
