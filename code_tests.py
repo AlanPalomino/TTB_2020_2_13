@@ -24,6 +24,7 @@ import pandas as pd
 import numpy as np
 import biosppy
 import decimal
+import pickle
 import json
 import wfdb
 import ast
@@ -41,7 +42,11 @@ import umap.plot
 
 #from main import MainDummy
 %matplotlib inline
-sns.set(style='white', context='notebook',palette='muted', rc={'figure.figsize':(14,10)})
+sns.set(style='whitegrid', palette='muted', font_scale=1.2)
+
+HAPPY_COLORS_PALETTE = ["#01BEFE", "#FFDD00", "#FF7D00", "#FF006D", "#ADFF02", "#8F00FF"]
+
+sns.set_palette(sns.color_palette(HAPPY_COLORS_PALETTE))
 
 comp_data = pd.read_csv('complete_data.csv')
 MainDF  = pd.DataFrame(comp_data)
@@ -397,6 +402,74 @@ with open('ECG5000_TRAIN.arff') as f:
 
 with open('ECG5000_TEST.arff') as f:
   test = a2p.load(f)
+
+  df = train.append(test)
+
+#new_data = pd.read_csv('Test/Test_250ws.csv')
+#new_data = pd.read_pickle("Test/Test_250ws.pkl")
+with open("Test/Test_250ws.pkl",'rb') as pf:
+  new_data = pickle.load(pf)
+  new_data.isna()
+
+new_data.loc[0,'ae'][:20]
+
+df = df.sample(frac=1.0)
+
+CLASS_NORMAL = 1
+
+class_names = ['Normal','R on T','PVC','SP','UB']
+
+new_columns = list(df.columns)
+
+new_columns[-1] = 'target'
+
+df.columns = new_columns
+
+# %%
+def plot_time_series_class(data, class_name, ax, n_steps=10):
+  time_series_df = pd.DataFrame(data)
+
+  smooth_path = time_series_df.rolling(n_steps).mean()
+  path_deviation = 2 * time_series_df.rolling(n_steps).std()
+
+  under_line = (smooth_path - path_deviation)[0]
+  over_line = (smooth_path + path_deviation)[0]
+
+  ax.plot(smooth_path, linewidth=2)
+  ax.fill_between(
+    path_deviation.index,
+    under_line,
+    over_line,
+    alpha=.125
+  )
+  ax.set_title(class_name)
+
+classes = df.target.unique()
+
+fig, axs = plt.subplots(
+  nrows=len(classes) // 3 + 1,
+  ncols=3,
+  sharey=True,
+  figsize=(14, 8)
+)
+
+
+for i, cls in enumerate(classes):
+  ax = axs.flat[i]
+  data = df[df.target == cls] \
+    .drop(labels='target', axis=1) \
+    .mean(axis=0) \
+    .to_numpy()
+  plot_time_series_class(data, class_names[i], ax)
+
+fig.delaxes(axs.flat[-1])
+fig.tight_layout();
+
+# %%
+# ================== Base ECG sanos=====================
+normal_df = df[df.target == str(CLASS_NORMAL)].drop(labels='target', axis=1)
+
+normal_df.shape
 # %%
 
 from kenchi.outlier_detection.statistical import HBOS
@@ -415,9 +488,9 @@ model = Sequential()
 model.add(LSTM(16, activation='relu', input_shape=(timesteps, n_features), return_sequences=True))
 model.add(LSTM(16, activation='relu'))
 model.add(Dense(1))
-model.compile(optimizer='adam', loss='mse')
+model.compile(optimizer='adam', loss='mae')
 
 model.fit(X_train, y_train, epochs=30, batch_size=32)
 y_pred = model.predict(X_test)
-print("MSE:", mean_squared_error(y_test, y_pred))
+print("MAE:", mean_absolute_error(y_test, y_pred))
 # %%
