@@ -24,6 +24,7 @@ import pandas as pd
 import numpy as np
 import biosppy
 import decimal
+import pickle
 import json
 import wfdb
 import ast
@@ -38,8 +39,17 @@ import tensorflow as tf
 from tensorflow import keras
 import umap
 import umap.plot
+
+from main import MainDummy
 %matplotlib inline
-sns.set(style='white', context='notebook', rc={'figure.figsize':(14,10)})
+sns.set(style='whitegrid', palette='muted', font_scale=1.2)
+
+HAPPY_COLORS_PALETTE = ["#01BEFE", "#FFDD00", "#FF7D00", "#FF006D", "#ADFF02", "#8F00FF"]
+
+sns.set_palette(sns.color_palette(HAPPY_COLORS_PALETTE))
+
+RANDOM_SEED = 42
+np.random.seed(RANDOM_SEED)
 
 comp_data = pd.read_csv('complete_data.csv')
 MainDF  = pd.DataFrame(comp_data)
@@ -257,7 +267,7 @@ umap.UMAP(a=None, angular_rp_forest=False, b=None,
      transform_queue_size=4.0, transform_seed=42, unique=False, verbose=False)
 """
 
-for n in (2, 3, 4, 5, 6,10, 20, 50, 80):
+for n in (2, 3, 4, 5, 6, 7, 8, 9, 10):
    
         reducer = umap.UMAP( n_neighbors=n,min_dist=0.0,n_components=2,random_state=42)
         # Scale Data
@@ -364,5 +374,151 @@ X_test = sc.transform(X_test)
 lda = LDA(n_components=1)
 X_train = lda.fit_transform(X_train, y_train)
 X_test = lda.transform(X_test)
+# %%
+from sklearn.ensemble import RandomForestClassifier
+
+classifier = RandomForestClassifier(max_depth=2, random_state=0)
+
+classifier.fit(X_train, y_train)
+y_pred = classifier.predict(X_test)
 
 
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import accuracy_score
+
+cm = confusion_matrix(y_test, y_pred)
+print(cm)
+print('Accuracy' + str(accuracy_score(y_test, y_pred)))
+# %%
+
+#============== LSTM Autoencoder =======================
+
+# EXAMPLE
+from arff2pandas import a2p
+
+#!gdown --id 16MIleqoIr1vYxlGk4GKnGmrsCPuWkkpT
+
+#!unzip -qq ECG5000.zip
+
+with open('ECG5000_TRAIN.arff') as f:
+  train = a2p.load(f)
+
+with open('ECG5000_TEST.arff') as f:
+  test = a2p.load(f)
+
+  df = train.append(test)
+
+#new_data = pd.read_csv('Test/Test_250ws.csv')
+#new_data = pd.read_pickle("Test/Test_250ws.pkl")
+with open("Test/Test_250ws.pkl",'rb') as pf:
+  new_data = pickle.load(pf)
+  new_data.isna()
+
+new_data.loc[0,'ae'][:20]
+
+df = df.sample(frac=1.0)
+
+CLASS_NORMAL = 1
+
+class_names = ['Normal','R on T','PVC','SP','UB']
+
+new_columns = list(df.columns)
+
+new_columns[-1] = 'target'
+
+df.columns = new_columns
+
+
+
+# %%
+def plot_time_series_class(data, class_name, ax, n_steps=10):
+  time_series_df = pd.DataFrame(data)
+
+  smooth_path = time_series_df.rolling(n_steps).mean()
+  path_deviation = 2 * time_series_df.rolling(n_steps).std()
+
+  under_line = (smooth_path - path_deviation)[0]
+  over_line = (smooth_path + path_deviation)[0]
+
+  ax.plot(smooth_path, linewidth=2)
+  ax.fill_between(
+    path_deviation.index,
+    under_line,
+    over_line,
+    alpha=.125
+  )
+  ax.set_title(class_name)
+
+classes = df.target.unique()
+
+fig, axs = plt.subplots(
+  nrows=len(classes) // 3 + 1,
+  ncols=3,
+  sharey=True,
+  figsize=(14, 8)
+)
+
+
+for i, cls in enumerate(classes):
+  ax = axs.flat[i]
+  data = df[df.target == cls] \
+    .drop(labels='target', axis=1) \
+    .mean(axis=0) \
+    .to_numpy()
+  plot_time_series_class(data, class_names[i], ax)
+
+fig.delaxes(axs.flat[-1])
+fig.tight_layout();
+
+# %%
+# ================== Base ECG sanos=====================
+normal_df = df[df.target == str(CLASS_NORMAL)].drop(labels='target', axis=1)
+#normal_df.shape
+
+anomaly_df = df[df.target != str(CLASS_NORMAL)].drop(labels='target', axis=1)
+#anomaly_df.shape
+
+train_df, val_df = train_test_split(
+
+  normal_df,
+
+  test_size=0.15,
+
+  random_state=RANDOM_SEED
+
+)
+
+val_df, test_df = train_test_split(
+
+  val_df,
+
+  test_size=0.33,
+
+  random_state=RANDOM_SEED
+
+)
+
+# %%
+
+from kenchi.outlier_detection.statistical import HBOS
+
+hbos = HBOS(novelty=True).fit(X)
+y_pred = hbos.predict(X)
+# %%
+from keras.models import Sequential
+from keras.layers import LSTM, Dense
+from sklearn.metrics import mean_squared_error
+
+timesteps = window_size-1
+n_features = 1
+
+model = Sequential()
+model.add(LSTM(16, activation='relu', input_shape=(timesteps, n_features), return_sequences=True))
+model.add(LSTM(16, activation='relu'))
+model.add(Dense(1))
+model.compile(optimizer='adam', loss='mae')
+
+model.fit(X_train, y_train, epochs=30, batch_size=32)
+y_pred = model.predict(X_test)
+print("MAE:", mean_absolute_error(y_test, y_pred))
+# %%

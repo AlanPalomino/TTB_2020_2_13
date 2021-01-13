@@ -133,10 +133,10 @@ conditions = ["Fibrilación Atrial", "Insuficiencia Cardíaca Congestiva", "de C
 techniques = ["Entropía aproximada", "Entropía muestral", "Analisis de Fluctuación sin Tendencia (DFA)", "Coeficiente de Higuchi (HFD)","Radio = SD1/SD2"]
 columns = ["AppEn", "SampEn", "DFA", "HFD","SD_ratio"]
 cases = [AF_CASES, CHF_CASES, HC_CASES]
-
+"""
 for idx in range(len(cases)):
     distribution_NL(cases[idx], conditions[idx])
-
+"""
 #distribution_NL(HC_CASES_NL, 'Grupo Sano')
 # %%
 # KS TEST (CONVERTIR EN FUNCIÓN GENERAL Y BORRAR DE MAIN)
