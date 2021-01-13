@@ -40,13 +40,16 @@ from tensorflow import keras
 import umap
 import umap.plot
 
-#from main import MainDummy
+from main import MainDummy
 %matplotlib inline
 sns.set(style='whitegrid', palette='muted', font_scale=1.2)
 
 HAPPY_COLORS_PALETTE = ["#01BEFE", "#FFDD00", "#FF7D00", "#FF006D", "#ADFF02", "#8F00FF"]
 
 sns.set_palette(sns.color_palette(HAPPY_COLORS_PALETTE))
+
+RANDOM_SEED = 42
+np.random.seed(RANDOM_SEED)
 
 comp_data = pd.read_csv('complete_data.csv')
 MainDF  = pd.DataFrame(comp_data)
@@ -425,6 +428,8 @@ new_columns[-1] = 'target'
 
 df.columns = new_columns
 
+
+
 # %%
 def plot_time_series_class(data, class_name, ax, n_steps=10):
   time_series_df = pd.DataFrame(data)
@@ -468,8 +473,31 @@ fig.tight_layout();
 # %%
 # ================== Base ECG sanos=====================
 normal_df = df[df.target == str(CLASS_NORMAL)].drop(labels='target', axis=1)
+#normal_df.shape
 
-normal_df.shape
+anomaly_df = df[df.target != str(CLASS_NORMAL)].drop(labels='target', axis=1)
+#anomaly_df.shape
+
+train_df, val_df = train_test_split(
+
+  normal_df,
+
+  test_size=0.15,
+
+  random_state=RANDOM_SEED
+
+)
+
+val_df, test_df = train_test_split(
+
+  val_df,
+
+  test_size=0.33,
+
+  random_state=RANDOM_SEED
+
+)
+
 # %%
 
 from kenchi.outlier_detection.statistical import HBOS
