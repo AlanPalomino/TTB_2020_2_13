@@ -564,7 +564,7 @@ class Autoencoder(tf.keras.Model):
     code = self.encoder(input_features)
     reconstructed = self.decoder(code)
     return reconstructed
-    
+
 def train(loss, model, opt, original):
   with tf.GradientTape() as tape:
     gradients = tape.gradient(loss(model, original), model.trainable_variables)
@@ -672,4 +672,25 @@ model.compile(optimizer='adam', loss='mae')
 model.fit(X_train, y_train, epochs=30, batch_size=32)
 y_pred = model.predict(X_test)
 print("MAE:", mean_absolute_error(y_test, y_pred))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# %%
+import torch
+x = torch.rand(5, 3)
+print(x)
+
 # %%
