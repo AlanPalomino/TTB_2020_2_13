@@ -37,7 +37,6 @@ COND_ID = dict(
 )
 
 
-
 def hurst_eval(rr):
     H, _, _ = compute_Hc(rr)
     return H
