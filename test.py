@@ -94,6 +94,24 @@ def vectorize_df(data: pd.DataFrame):
         return row
     return data.apply(gen_vectors, axis=1)
 
+def linear2csv():
+    def edit_row(row):
+        rr = row['rr']
+        s = stats.describe(rr)
+        new_row = row[['record', 'condition']]
+        new_row['mean'] = s[2]
+        new_row['variance'] = s[3]
+        new_row['skewness'] = s[4]
+        new_row['kurtosis'] = s[5]
+        return new_row
+
+    with open('Test/healthy.pkl', 'rb') as pf:
+        pickleData = pickle.load(pf)
+    # Get RR stats from each row
+    csvLinearData = pickleData.apply(edit_row, axis=1)
+    csvLinearData.to_csv('Test/linear_healthy.csv', index=False)
+
+
 
 if __name__ == "__main__":
-    load_healthy()
+        linear2csv()
