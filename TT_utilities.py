@@ -42,7 +42,7 @@ def timeit(func):
         r = func(*args, **kwargs)
         e_time = time.time()
         print(f"Function {func.__name__} execution time: {e_time - s_time:.2f}'s")
-        return r
+        return
     return timed_func
 
 
@@ -301,8 +301,8 @@ class Record():
             # get RR
             raw_signal = self[signal]
             self.rr_int = np.diff(get_peaks(raw_signal, self.fs))
-            self.rr_temp = self.rr_int * (1/self.fs)
-            if len(self.rr_int) < RR_WINDOW_THRESHOLD:
+            self.rr = self.rr_int * (1/self.fs)
+            if len(self.rr) < RR_WINDOW_THRESHOLD:
                 print(f' > X Record {self.name} - Analysis not possible, rr too short.')
                 return False
             # self.hurst = get_hurst(self.rr_int)
@@ -315,7 +315,7 @@ class Record():
 
         self.N_LINEAR = {
             m["tag"]: t for m, t in zip(NL_METHODS,
-                                        nonLinearWindowing(self.rr_int))
+                                        nonLinearWindowing(self.rr))
         }
         print(f' > < Record {self.name} - Non linear analysis done.')
         return True
@@ -738,7 +738,7 @@ def RunAnalysis():
 
 # ====================== Global Values =========================== #
 
-RR_WLEN = 2500
+RR_WLEN = 250
 RR_OVER = 0.5
 RR_STEP = int(RR_WLEN * (1 - RR_OVER))
 RR_WINDOW_THRESHOLD = RR_WLEN * 6   # Mínimo número de datos que requiere un registro rr para ser válido.

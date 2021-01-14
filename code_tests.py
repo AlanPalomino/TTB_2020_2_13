@@ -40,7 +40,7 @@ from tensorflow import keras
 import umap
 import umap.plot
 
-from main import MainDummy
+#from main import MainDummy
 %matplotlib inline
 sns.set(style='whitegrid', palette='muted', font_scale=1.2)
 
@@ -497,7 +497,158 @@ val_df, test_df = train_test_split(
   random_state=RANDOM_SEED
 
 )
+# %%
+import tensorflow as tf
 
+def create_dataset(df):
+
+  sequences = df.astype(np.float32).to_numpy().tolist()
+
+  dataset = [tf.convert_to_tensor(s) for s in sequences]
+
+  seq_len, n_features = tf.stack(dataset).shape
+
+  return dataset, seq_len, n_features
+
+# %%
+train_dataset, seq_len, n_features = create_dataset(train_df)
+
+val_dataset, _, _ = create_dataset(val_df)
+
+test_normal_dataset, _, _ = create_dataset(test_df)
+
+test_anomaly_dataset, _, _ = create_dataset(anomaly_df)
+
+# %%
+class Encoder(tf.keras.layers.Layer):
+  def __init__(self, intermediate_dim):
+    super(Encoder, self).__init__()
+    self.hidden_layer = tf.keras.layers.Dense(
+      units=intermediate_dim,
+      activation=tf.nn.relu,
+      kernel_initializer='he_uniform'
+    )
+    self.output_layer = tf.keras.layers.Dense(
+      units=intermediate_dim,
+      activation=tf.nn.sigmoid
+    )
+    
+  def call(self, input_features):
+    activation = self.hidden_layer(input_features)
+    return self.output_layer(activation)
+
+class Decoder(tf.keras.layers.Layer):
+  def __init__(self, intermediate_dim, original_dim):
+    super(Decoder, self).__init__()
+    self.hidden_layer = tf.keras.layers.Dense(
+      units=intermediate_dim,
+      activation=tf.nn.relu,
+      kernel_initializer='he_uniform'
+    )
+    self.output_layer = tf.keras.layers.Dense(
+      units=original_dim,
+      activation=tf.nn.sigmoid
+    )
+  
+  def call(self, code):
+    activation = self.hidden_layer(code)
+    return self.output_layer(activation)
+
+class Autoencoder(tf.keras.Model):
+  def __init__(self, intermediate_dim, original_dim):
+    super(Autoencoder, self).__init__()
+    self.encoder = Encoder(intermediate_dim=intermediate_dim)
+    self.decoder = Decoder(intermediate_dim=intermediate_dim, original_dim=original_dim)
+  
+  def call(self, input_features):
+    code = self.encoder(input_features)
+    reconstructed = self.decoder(code)
+    return reconstructed
+    
+def train(loss, model, opt, original):
+  with tf.GradientTape() as tape:
+    gradients = tape.gradient(loss(model, original), model.trainable_variables)
+    gradient_variables = zip(gradients, model.trainable_variables)
+    opt.apply_gradients(gradient_variables)
+# %%
+#========== TRAINNING MODEL =======================
+def train_model(model, train_dataset, val_dataset, n_epochs):
+
+  optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+
+  criterion = nn.L1Loss(reduction='sum').to(device)
+
+  history = dict(train=[], val=[])
+
+  best_model_wts = copy.deepcopy(model.state_dict())
+
+  best_loss = 10000.0
+
+  for epoch in range(1, n_epochs + 1):
+
+    model = model.train()
+
+    train_losses = []
+
+    for seq_true in train_dataset:
+
+      optimizer.zero_grad()
+
+      seq_true = seq_true.to(device)
+
+      seq_pred = model(seq_true)
+
+      loss = criterion(seq_pred, seq_true)
+
+      loss.backward()
+
+      optimizer.step()
+
+      train_losses.append(loss.item())
+
+    val_losses = []
+
+    model = model.eval()
+
+    with torch.no_grad():
+
+      for seq_true in val_dataset:
+
+        seq_true = seq_true.to(device)
+
+        seq_pred = model(seq_true)
+
+        loss = criterion(seq_pred, seq_true)
+
+        val_losses.append(loss.item())
+
+    train_loss = np.mean(train_losses)
+
+    val_loss = np.mean(val_losses)
+
+    history['train'].append(train_loss)
+
+    history['val'].append(val_loss)
+
+    if val_loss < best_loss:
+
+      best_loss = val_loss
+
+      best_model_wts = copy.deepcopy(model.state_dict())
+
+    print(f'Epoch {epoch}: train loss {train_loss} val loss {val_loss}')
+
+  model.load_state_dict(best_model_wts)
+
+  return model.eval(), history
+
+# %%
+model, history = train_model(
+  model, 
+  train_dataset, 
+  val_dataset, 
+  n_epochs=150
+)
 # %%
 
 from kenchi.outlier_detection.statistical import HBOS
