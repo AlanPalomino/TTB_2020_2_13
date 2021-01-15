@@ -6,6 +6,7 @@ from entropy import spectral_entropy
 import pandas as pd
 import numpy as np
 import json
+import sys
 import os
 
 
@@ -94,6 +95,7 @@ def vectorize_df(data: pd.DataFrame):
         return row
     return data.apply(gen_vectors, axis=1)
 
+
 def linear2csv():
     def edit_row(row):
         rr = row['rr']
@@ -105,12 +107,41 @@ def linear2csv():
         new_row['kurtosis'] = s[5]
         return new_row
 
-    with open('Test/healthy.pkl', 'rb') as pf:
-        pickleData = pickle.load(pf)
-    # Get RR stats from each row
-    csvLinearData = pickleData.apply(edit_row, axis=1)
-    csvLinearData.to_csv('Test/linear_healthy.csv', index=False)
 
+    def process_files(jsonfiles, csvfilename):
+        json_data = list()
+        for jf in jsonfiles:
+            with jf.open() as file:
+                mixed = json.load(file)
+                appr = [reg for reg in mixed if reg['approved']]
+                json_data.extend(appr)
+        DATA = pd.DataFrame(json_data)
+        DATA['condition'] = DATA['conditon']
+        DATA['rr'] = DATA.apply(lambda row: np.array(row['rr'])/row['fs'], axis=1)
+        DATA['rr'] = DATA['rr'].apply(lambda signal: signal[np.where(signal < 2)])
+        
+        DATA = DATA.apply(edit_row, axis=1)
+        DATA.to_csv(csvfilename, index=True)
+
+    h_jsonfiles = [
+            Path('Data_Jsons/normal-sinus-rhythm-rr-interval-database-1.0.0.json'),
+            Path('Data_Jsons/nn-cases-healthy-control.json')
+            ]
+    s_jsonfiles = [
+        Path('Data_Jsons/afdb-1.0.0.physionet.org.json'),
+        Path('Data_Jsons/chfdb-1.0.0.physionet.org.json'),
+        Path('Data_Jsons/ltafdb-1.0.0.physionet.org.json'),
+        Path('Data_Jsons/mitdb-1.0.0.physionet.org.json'),
+        Path('Data_Jsons/ptbdb-1.0.0.physionet.org.json'),
+        ]
+
+    process_files(h_jsonfiles, 'linear_healthy.csv')
+    process_files(s_jsonfiles, 'linear_sick.csv')
+
+
+    # Get RR stats from each row
+    # csvLinearData = pickleData.apply(edit_row, axis=1)
+    # csvLinearData.to_csv('Test/linear_healthy.csv', index=False)
 
 
 if __name__ == "__main__":

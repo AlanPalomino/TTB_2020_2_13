@@ -33,7 +33,8 @@ for m in NL_METHODS:
 COND_ID = dict(
     atrial_fibrillation=0,
     congestive_heartfailure=1,
-    myocardial_infarction=2
+    myocardial_infarction=2,
+    control=3
 )
 
 
@@ -61,7 +62,7 @@ def generate_csv():
                 ])
             row_data = [
                 c._case_name,               # Case
-                r.name,                     # Record 
+                r.name,                     # Record
                 c.pathology,                # Condition
                 condition_ids[c.pathology], # Condition ID
                 r.hurst,                    # RR Hurst value
