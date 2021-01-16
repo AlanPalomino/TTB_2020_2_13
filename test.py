@@ -136,8 +136,8 @@ def load_dummy():
             Path('Data_Jsons/ptbdb-1.0.0.physionet.org.json'),
             ]
 
-        h_pickleData = dummy_process(h_jsonfiles, 'linear_healthy.pkl')
-        s_pickleData = dummy_process(s_jsonfiles, 'linear_sick.pkl')
+        h_pickleData = dummy_process(h_jsonfiles, 'Test/linear_healthy.pkl')
+        s_pickleData = dummy_process(s_jsonfiles, 'Test/linear_sick.pkl')
 
     return
 
