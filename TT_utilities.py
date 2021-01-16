@@ -738,7 +738,7 @@ def RunAnalysis():
 
 # ====================== Global Values =========================== #
 
-RR_WLEN = 250
+RR_WLEN = 500
 RR_OVER = 0.5
 RR_STEP = int(RR_WLEN * (1 - RR_OVER))
 RR_WINDOW_THRESHOLD = RR_WLEN * 6   # Mínimo número de datos que requiere un registro rr para ser válido.

@@ -19,7 +19,7 @@ CSV_COLS = [
     'record',
     'condition',
     'cond_id',
-    'length'
+    'length',
 ]
 for m in NL_METHODS:
     CSV_COLS.extend([
@@ -44,7 +44,7 @@ def hurst_eval(rr):
 
 
 def generate_csv():
-    condition_ids =     cases_list = unpickle_data()
+    cases_list = unpickle_data()
     csv_name = 'complete_data.csv'
     FULL_CSV = pd.DataFrame(columns=CSV_COLS)
     for c in cases_list:
@@ -64,20 +64,13 @@ def generate_csv():
                 c._case_name,               # Case
                 r.name,                     # Record
                 c.pathology,                # Condition
-                condition_ids[c.pathology], # Condition ID
-                r.hurst,                    # RR Hurst value
-                r.time_domain['cvnni'],
-                r.time_domain['cvsd'],
-                r.time_domain['mean_nni'],
-                r.freq_domain['lf_hf_ratio'],
-                r.freq_domain['total_power'],
-                r.poin_features['ratio_sd2_sd1'],
-                r.samp_entropy['sampen']
+                COND_ID[c.pathology],       # Condition ID
+                len(r.rr),                  # RR Length
             ] + values
             FULL_CSV = FULL_CSV.append(
                 pd.Series(
                     data=row_data,
-                    index=columns
+                    index=CSV_COLS
                 ), ignore_index=True
             )
             print("[v]")
