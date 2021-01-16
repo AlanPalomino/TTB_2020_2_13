@@ -173,10 +173,10 @@ def predict(model, dataset):
 
 def load_dummy() -> pd.DataFrame:
     with open('Test/linear_healthy.pkl', 'rb') as pf:
-        DF = pickle.load(pd)
-    with open('Test/linear_sick.pkl', 'rb') as ff:
-        DF = DF.append(pickle.load(pd))
-    return DF
+        DF = pickle.load(pf)
+    with open('Test/linear_sick.pkl', 'rb') as pf:
+        DF = DF.append(pickle.load(pf))
+    return DF[ DF.length > 500*6]
 
 
 def load_mimic() -> pd.DataFrame:
@@ -214,14 +214,18 @@ if __name__ == '__main__':
     full_df = load_dummy()
     # TESTS ENDING
 
-    MIN_LEN = load_dummy['length'].min()
+    MIN_LEN = full_df['length'].min()
+    print(full_df.groupby('condition')['case'].count())
+    print(f'With minimal length: {MIN_LEN}')
     # Equalize data on a separate dataframe with identifiers
-    signal_DF = pd.DataFrame(
-        [ ['cond_id'] + row['rr'][:MIN_LEN] for row in full_df.iterrows()]
-    )
+      
+    data = [
+      list([row['cond_id']]) + list(row['rr'][:MIN_LEN]) for i, row in full_df.iterrows()
+    ]
+    signal_df = pd.DataFrame(data)
     # Data Preprocessing - Separating control signals
-    control_df = signal_df[signal_df.cond_id == 3].drop(labels='cond_id', axis=1)
-    sickly_df = signal_df[signal_df.cond_id != 3].drop(labels='cond_id', axis=1)
+    control_df = signal_df[signal_df[0] == 3]
+    sickly_df = signal_df[signal_df[0] != 3]
 
     # Training collections generation
     train_df, val_df = train_test_split(
@@ -231,21 +235,25 @@ if __name__ == '__main__':
         )
     val_df, test_df = train_test_split(
         val_df,
-        test_size=0.33
+        test_size=0.33,
         random_state=RANDOM_SEED
         )
 
     train_dataset, seq_len, n_features = create_dataset(train_df)
     val_dataset, _, _ = create_dataset(val_df)
     test_control_dataset, _, _ = create_dataset(test_df)
-    test_sickly_dataset, _, _ = cretate_dataset(sickly_df)
+    test_sickly_dataset, _, _ = create_dataset(sickly_df)
+    
+    print(" > Datasets setup finished")
 
     # Training anew or getting previously used model
     try:
         model = torch.load('model.pth')
     except FileNotFoundError:
+        print(' ¿ Starting Autoencoder Model')
         model = RecurrentAutoencoder(seq_len, n_features, 128)
         model = model.to(device)
+        print(' ! Training Model...')
         model, history = train_model(
             model,
             train_dataset,
@@ -258,12 +266,14 @@ if __name__ == '__main__':
         torch.save(model, MODEL_PATH)
         with open('model_history.pkl', 'wb') as f:
             pickle.dump(history, f)
+        print(' > Model finished and saved')
     
     # Calculation and saving of loss data
     _, losses = predict(model, train_dataset)
     with open('model_losses.pkl', 'wb') as f:
         pickle.dump(losses, f)
     
+    print(" ? Predicting...")
     predictions, pred_losses, predict(model, test_normal_dataset)
     THRESHOLD = 26
     correct = sum(l <= THRESHOLD for l in pred_losses)
