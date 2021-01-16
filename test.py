@@ -18,6 +18,15 @@ punctual_names = [
 ]
 
 
+COND_ID = dict(
+    AF=['atrial_fibrillation', 0],
+    AR=['atrial_fibrillation', 0],
+    CHF=['congestive_heartfailure', 1],
+    MI=['myocardial_infarction', 2],
+    HC=['control', 3]
+)
+
+
 def vector2csv(df):
     def process_row(row: pd.Series) -> pd.Series:
         data = dict(
@@ -41,48 +50,99 @@ def vector2csv(df):
     del df_extended["fs"]
     del df_extended['rr']
 
-    return df_extended
+    return df_extendedo
 
 
-def load_healthy():
-    try:
-        with open('Test/healthy.pkl', 'rb') as pf:
-            pickleData = pickle.load(pf)
+def dummy_process(jsonfiles: list, filename: str) -> pd.DataFrame:
+    def get_ids(row: pd.Series) -> pd.Series:
+        try:
+            row['condition'] = COND_ID.get(row['conditon'])[0]
+            row['cond_id'] = COND_ID.get(row['conditon'])[1]
+        except KeyError as e:
+            print(row)
+            raise KeyError(e)
+        return row
 
-    except FileNotFoundError:
-        jsonfiles = [
+    # Data es read from json paths
+    data = list()
+    for jf in jsonfiles:
+        with jf.open() as file:
+            mixed = json.load(file)
+            data.extend([reg for reg in mixed if reg['approved']])
+    data = pd.DataFrame(data)
+    data = data.apply(get_ids, axis=1)
+    # Dataframe adjustment and ordering
+    data["rr"] = data.apply(lambda row: np.array(row["rr"])/row["fs"], axis=1)
+    data["rr"] = data["rr"].apply(lambda signal: signal[np.where(signal < 2)])
+    data["length"] = data["rr"].apply(lambda signal: len(signal))
+    data["case"] = data["record"]
+    # We filter for only relevant columns
+    data = data[['case', 'record', 'condition', 'cond_id', 'length', 'fs', 'rr']]
+    print(f" < Vectorizing for {filename}...", end="")
+    pickleData = vectorize_df(data)
+    print("\tDONE >")
+
+    print(f" < Generate Pickle for {filename}...", end="")
+    with open(filename, "wb") as pf:
+        pickle.dump(pickleData, pf)
+    print("\tDONE >")
+    
+    return pickleData
+
+
+def check_ids():
+    jsonfiles = [
+            Path('Data_Jsons/afdb-1.0.0.physionet.org.json'),
+            Path('Data_Jsons/chfdb-1.0.0.physionet.org.json'),
+            Path('Data_Jsons/ltafdb-1.0.0.physionet.org.json'),
+            Path('Data_Jsons/mitdb-1.0.0.physionet.org.json'),
+            Path('Data_Jsons/ptbdb-1.0.0.physionet.org.json'),
             Path('Data_Jsons/normal-sinus-rhythm-rr-interval-database-1.0.0.json'),
             Path('Data_Jsons/nn-cases-healthy-control.json')
         ]
-        data = list()
-        for jf in jsonfiles:
-            with jf.open() as file:
-                mixed = json.load(file)
-                data.extend([reg for reg in mixed if reg['approved']])
-        print(" < READING FINISHED >")
-        data = pd.DataFrame(data)
+    ls = list()
+    for j in jsonfiles:
+        with j.open() as f:
+            d = [r for r in json.load(f) if r["approved"]]
+            print(j)
+            print(d[0].keys())
+            try:
+                ls.extend([r["conditon"] for r in d])
+            except KeyError:
+                print(" > has no condition data")
+    print(f"\nColumns: {set(ls)}\n")
 
-        # Dataframe adjustment and ordering
-        data["rr"] = data.apply(lambda row: np.array(row["rr"])/row["fs"], axis=1)
-        data["rr"] = data["rr"].apply(lambda signal: signal[np.where(signal < 2)])
-        data["length"] = data["rr"].apply(lambda signal: len(signal))
-        data["case"] = data["record"]
-        data['condition'] = 'control'
-        data['cond_id'] = 3
 
-        data = data[['case', 'record', 'condition', 'cond_id', 'length', 'fs', 'rr']]
+def load_dummy():
+    try:
+        with open('Test/linear_healthy.pkl', 'rb') as pf:
+            pickleData = pickle.load(pf)
+        with open('Test/linear_sick.pkl', 'rb') as pf:
+            pickleData = pickleData.append(pickle.load(pf))
 
-        print(" < Vectorizing...", end="")
-        pickleData = vectorize_df(data)
-        print("\tDONE >")
+    except FileNotFoundError:
 
-        print(" < Generate Pickle...", end="")
-        with open("Test/healthy.pkl", "wb") as pf:
-            pickle.dump(pickleData, pf)
-        print("\tDONE >")
+        print('No previous Pickled data has been found, generating from zero.')
+
+        h_jsonfiles = [
+            Path('Data_Jsons/normal-sinus-rhythm-rr-interval-database-1.0.0.json'),
+            Path('Data_Jsons/nn-cases-healthy-control.json')
+                ]
+        s_jsonfiles = [
+            Path('Data_Jsons/afdb-1.0.0.physionet.org.json'),
+            Path('Data_Jsons/chfdb-1.0.0.physionet.org.json'),
+            Path('Data_Jsons/ltafdb-1.0.0.physionet.org.json'),
+            Path('Data_Jsons/mitdb-1.0.0.physionet.org.json'),
+            Path('Data_Jsons/ptbdb-1.0.0.physionet.org.json'),
+            ]
+
+        h_pickleData = dummy_process(h_jsonfiles, 'linear_healthy.pkl')
+        s_pickleData = dummy_process(s_jsonfiles, 'linear_sick.pkl')
+
+    return
 
     print(" < Generate .csv...", end="")
-    csvData = vector2csv(pickleData)
+    csvData = vector2csv(hpickleData)
     csvData.to_csv("Test/healthy.csv")
     print("\tDONE >")
 
@@ -145,4 +205,4 @@ def linear2csv():
 
 
 if __name__ == "__main__":
-        linear2csv()
+        load_dummy()
