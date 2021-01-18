@@ -223,50 +223,51 @@ if __name__ == '__main__':
       list([row['cond_id']]) + list(row['rr'][:MIN_LEN]) for i, row in full_df.iterrows()
     ]
     signal_df = pd.DataFrame(data)
-    # Data Preprocessing - Separating control signals
-    control_df = signal_df[signal_df[0] == 3]
-    sickly_df = signal_df[signal_df[0] != 3]
+    for id in [0, 1, 2]:
+        # Data Preprocessing - Separating control signals
+        control_df = signal_df[signal_df[0] == 3]
+        sickly_df = signal_df[signal_df[0] == id]
 
-    # Training collections generation
-    train_df, val_df = train_test_split(
-        control_df,
-        test_size=0.15,
-        random_state=RANDOM_SEED
-        )
-    val_df, test_df = train_test_split(
-        val_df,
-        test_size=0.33,
-        random_state=RANDOM_SEED
-        )
+        # Training collections generation
+        train_df, val_df = train_test_split(
+            control_df,
+            test_size=0.15,
+            random_state=RANDOM_SEED
+            )
+        val_df, test_df = train_test_split(
+            val_df,
+            test_size=0.33,
+            random_state=RANDOM_SEED
+            )
 
-    train_dataset, seq_len, n_features = create_dataset(train_df)
-    val_dataset, _, _ = create_dataset(val_df)
-    test_control_dataset, _, _ = create_dataset(test_df)
-    test_sickly_dataset, _, _ = create_dataset(sickly_df)
-    
-    print(" > Datasets setup finished")
+        train_dataset, seq_len, n_features = create_dataset(train_df)
+        val_dataset, _, _ = create_dataset(val_df)
+        test_control_dataset, _, _ = create_dataset(test_df)
+        test_sickly_dataset, _, _ = create_dataset(sickly_df)
+        
+        print(" > Datasets setup finished")
 
-    # Training anew or getting previously used model
-    try:
-        model = torch.load('model.pth')
-    except FileNotFoundError:
-        print(' ¿ Starting Autoencoder Model')
-        model = RecurrentAutoencoder(seq_len, n_features, 128)
-        model = model.to(device)
-        print(' ! Training Model...')
-        model, history = train_model(
-            model,
-            train_dataset,
-            val_dataset,
-            n_epochs=150
-        )
+        # Training anew or getting previously used model
+        try:
+            model = torch.load(f'model{id}.pth')
+        except FileNotFoundError:
+            print(' ¿ Starting Autoencoder Model')
+            model = RecurrentAutoencoder(seq_len, n_features, 128)
+            model = model.to(device)
+            print(' ! Training Model...')
+            model, history = train_model(
+                model,
+                train_dataset,
+                val_dataset,
+                n_epochs=150
+            )
 
-        # Saving model and history
-        MODEL_PATH = 'model.pth'
-        torch.save(model, MODEL_PATH)
-        with open('model_history.pkl', 'wb') as f:
-            pickle.dump(history, f)
-        print(' > Model finished and saved')
+            # Saving model and history
+            MODEL_PATH = f'model{id}.pth'
+            torch.save(model, MODEL_PATH)
+            with open(f'model{id}_history.pkl', 'wb') as f:
+                pickle.dump(history, f)
+            print(' > Model finished and saved')
     
     # Calculation and saving of loss data
     _, losses = predict(model, train_dataset)
