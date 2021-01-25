@@ -1,7 +1,7 @@
 
 
 ![](./imagenes/upiita_tt1.png)
-## <h1><center>Trabajo Terminal II</center></h1>
+# <h1><center>Trabajo Terminal II</center></h1>
 ##  <h1><center>Caracterización de precursores para patologías cardíacas mediante análisis complejo.</center></h1>
 
 
@@ -30,7 +30,17 @@ Analizar eventos de Fibrilación Arterial, Infarto Agudo del Miocardio e insufic
 * Aplicar técnicas no lineales de entropía de información, transformada de ondeletas, gráficos de Poincaré y fractalidad a los registros ECG Y HRV para obtener patrones morfológicos, magnitud y de control en las ondas de ECG.
 * Verificar la eficiencia del conjunto de precursores obtenidos con las técnicas no lineales mediante un algoritmo clasificador supervisado de patologías para comparar los registros del grupo de control saludable existente en la base de datos.
 
+## Propuesta de solución:
+
+La propuesta de solución para el problema planteado consiste en una metodología compuesta por tres fases principales:
+* Ingeniería de datos.
+* Procesamiento y análisis de señales.
+* Clasificación.
+ 
+ El diseño de dicha solución puede verse de manera esquemática en la siguiente imagen.
+ ![](./imagenes/ROADMAP_TT2.png)
+
 ## Trabajo Escrito:
 
 El trabajo escrito generado a partir de esta investigación se encuentra contenido en:
-> TTB_2020_2_13./tesis
+> TTB_2020_2_13/tesis
