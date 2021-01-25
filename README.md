@@ -49,6 +49,12 @@ El trabajo escrito generado a partir de esta investigación se encuentra conteni
 
 El presente proyecto hace uso de módulos de python ecternos, ya sea para optimizar el cálculo de métricas específicas ó para tomar como referencia en la implementación de código propio. Todas las rutas a dichas herramientas se encuentran referenciadas con un enlace directo a los respectivos repositorios a continuación:
 
+* https://github.com/MIT-LCP/wfdb-python
 * https://github.com/raphaelvallat/entropy
 * https://github.com/PGomes92/pyhrv
-* 
+* https://github.com/PIA-Group/BioSPPy/blob/212c3dcbdb1ec43b70ba7199deb5eb22bcb78fd0/docs/index.rst
+* https://pypi.org/project/hurst/
+* https://pypi.org/project/hrv-analysis/
+* https://www.tensorflow.org/learn
+* https://umap-learn.readthedocs.io/en/latest/
+
