@@ -1,3 +1,15 @@
+#!usr/bin/env python3
+# _*_ coding: utf-8 _*_ #
+#
+#___________________________________________________________________________
+#|                                                                         |
+#|      Generación de archivos JSON de MIMIC-III                           |
+#|                                                                         |
+#|                                                                         |
+#|_________________________________________________________________________|
+
+
+# ===================== Librerias Utilizadas ====================== #
 from pathlib import Path
 import os
 import csv

@@ -1,4 +1,16 @@
-# In[]
+#!usr/bin/env python3
+# _*_ coding: utf-8 _*_ #
+#
+#___________________________________________________________________________
+#|                                                                         |
+#|      Generación de archivos JSON de base de datos DUMMY                 |
+#|                                                                         |
+#|                                                                         |
+#|_________________________________________________________________________|
+
+
+# ===================== Librerias Utilizadas ====================== #
+
 from scipy.signal import find_peaks, iirnotch, filtfilt, sosfiltfilt
 from IPython.display import clear_output
 from scipy.misc import electrocardiogram
@@ -11,7 +23,6 @@ import json
 import sys
 import os
 
-# In[]
 
 class Unapproved(Exception):
     pass

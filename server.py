@@ -1,3 +1,16 @@
+#!usr/bin/env python3
+# _*_ coding: utf-8 _*_ #
+#
+#___________________________________________________________________________
+#|                                                                         |
+#|    TTB__2020_1_13 server code:                                          |
+#|      Código para distribución de carga en el servidor                   |
+#|                                                                         |
+#|                                                                         |
+#|_________________________________________________________________________|
+
+
+# ===================== Librerias Utilizadas ====================== #
 from TT_utilities import Case, NL_METHODS
 from TT_utilities import Record
 from multiprocessing import Pool
@@ -37,7 +50,7 @@ COND_ID = dict(
     control=3
 )
 
-
+# ===================== Funciones y Métodos ======================= #
 def hurst_eval(rr):
     H, _, _ = compute_Hc(rr)
     return H
@@ -254,7 +267,7 @@ OPTS = [
     }
 ]
 
-
+# ===================== Ejecución principal ======================= #
 if __name__ == '__main__':
     print(sys.argv)
     main(sys.argv[1])

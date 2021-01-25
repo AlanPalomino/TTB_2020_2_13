@@ -1,5 +1,6 @@
-# %%
-#_
+#!usr/bin/env python3
+# _*_ coding: utf-8 _*_ #
+#
 #___________________________________________________________________________
 #|                                                                         |
 #| Playground para pruebas:                                                |
@@ -8,23 +9,31 @@
 #|      una vez concluido el proyecto.                                     |
 #|_________________________________________________________________________|
 
-from TT_utilities import Case
-from pathlib import Path
 
+
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 from wfdb.processing.qrs import gqrs_detect
-#from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot as plt
 #from memory_profiler import profile
 from matplotlib import gridspec
+from TT_utilities import Case
 from scipy.stats import stats
+from tensorflow import keras
 from pprint import pprint 
+from pathlib import Path
+import sklearn.neighbors
+import tensorflow as tf
 import seaborn as sns
 import entropy as tpy
 import pandas as pd
 import numpy as np
+import umap.plot
 import biosppy
 import decimal
 import pickle
+import umap
 import json
 import wfdb
 import ast
@@ -32,16 +41,7 @@ import os
 import re
 
 
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-import sklearn.neighbors
-import tensorflow as tf
-from tensorflow import keras
-import umap
-import umap.plot
-
-#from main import MainDummy
-%matplotlib inline
+from main import MainDummy
 sns.set(style='whitegrid', palette='muted', font_scale=1.2)
 
 HAPPY_COLORS_PALETTE = ["#01BEFE", "#FFDD00", "#FF7D00", "#FF006D", "#ADFF02", "#8F00FF"]
@@ -54,8 +54,8 @@ np.random.seed(RANDOM_SEED)
 comp_data = pd.read_csv('complete_data.csv')
 MainDF  = pd.DataFrame(comp_data)
 
-#from main import MainDF
-# %%
+from main import MainDF
+
 """ ANÁLISIS ESPECTRAL USANDO WAVELETS"""
 def WaveletPowerSpectrum():
         """
@@ -199,7 +199,7 @@ def WaveletPowerSpectrum():
 
         pyplot.show()
 
-# %%
+
 data = MainDF.sample(frac=1.0)
 #Clean dataset
 pathology = data[['record','cond_id', 'ae_mean',
@@ -246,7 +246,7 @@ X=pd.concat([atrial_f,myocardial_i, congestive_h ],ignore_index=True)
 X
 
 
-# %%
+
 #================= UMAP =====================================#
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
@@ -290,25 +290,24 @@ for n in (2, 3, 4, 5, 6, 7, 8, 9, 10):
         plt.show()
 #embedding.shape
 
-# %%
+
 
 #umap.plot.points(embedding)
 %time
 outlier_scores = sklearn.neighbors.LocalOutlierFactor(contamination=0.001428).fit_predict(X)
 #colors = np.array().map(["atrial_fibrilation", "myocardial_infarction", "congestive_heartfailure"])
-# %% 
+
 outlying_cases = X[outlier_scores == -1]
 outlying_cases.shape
 
-#%%
+
 # =============== Run only in server!!!!  ============================
 
-sns.pairplot(X, hue='cond_id')
-# %%
+#sns.pairplot(X, hue='cond_id')
+
 #colors = pd.Series(tar_labels).map({"atrial_fibrilation":0, "myocardial_infarction":2, "congestive_heartfailure":1})
 
 
-# %%
 #================ AREA UNDER THE CURVE =======================================
 from sklearn import metrics
 y = np.array([1, 1, 2, 2])
@@ -316,11 +315,11 @@ pred = np.array([0.1, 0.4, 0.35, 0.8])
 fpr, tpr, thresholds = metrics.roc_curve(y, pred, pos_label=2)
 metrics.auc(fpr, tpr)
 
-# %%
+
 hist = np.histogram(MainDummy.iloc[0]['SampEn'])
 
 
-# %% 
+
 """Holt-Winters (Triple Exponential Smoothing)"""
 
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
@@ -329,7 +328,7 @@ fit = ExponentialSmoothing(data, seasonal_periods=periodicity, trend='add', seas
 fit.fittedvalues.plot(color='blue')
 fit.forecast(5).plot(color='green')
 plt.show()
-# %%
+
 #================= ARIMA =====================================# 
 from statsmodels.tsa.arima_model import ARIMA
 from sklearn.metrics import mean_squared_error
@@ -358,9 +357,8 @@ print('MSE: %.3f' % mean_squared_error(test, predictions))
 plt.plot(test)
 plt.plot(predictions, color='red')
 plt.show()
-# %%
-#================= PCA =====================================#
-# %%
+
+
 #================= LDA =====================================#
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.model_selection import train_test_split
@@ -374,7 +372,7 @@ X_test = sc.transform(X_test)
 lda = LDA(n_components=1)
 X_train = lda.fit_transform(X_train, y_train)
 X_test = lda.transform(X_test)
-# %%
+
 from sklearn.ensemble import RandomForestClassifier
 
 classifier = RandomForestClassifier(max_depth=2, random_state=0)
@@ -389,7 +387,7 @@ from sklearn.metrics import accuracy_score
 cm = confusion_matrix(y_test, y_pred)
 print(cm)
 print('Accuracy' + str(accuracy_score(y_test, y_pred)))
-# %%
+
 
 #============== LSTM Autoencoder =======================
 
@@ -430,7 +428,7 @@ df.columns = new_columns
 
 
 
-# %%
+
 def plot_time_series_class(data, class_name, ax, n_steps=10):
   time_series_df = pd.DataFrame(data)
 
@@ -470,7 +468,7 @@ for i, cls in enumerate(classes):
 fig.delaxes(axs.flat[-1])
 fig.tight_layout();
 
-# %%
+
 # ================== Base ECG sanos=====================
 normal_df = df[df.target == str(CLASS_NORMAL)].drop(labels='target', axis=1)
 #normal_df.shape
@@ -497,7 +495,7 @@ val_df, test_df = train_test_split(
   random_state=RANDOM_SEED
 
 )
-# %%
+
 import tensorflow as tf
 
 def create_dataset(df):
@@ -510,7 +508,6 @@ def create_dataset(df):
 
   return dataset, seq_len, n_features
 
-# %%
 train_dataset, seq_len, n_features = create_dataset(train_df)
 
 val_dataset, _, _ = create_dataset(val_df)
@@ -519,7 +516,7 @@ test_normal_dataset, _, _ = create_dataset(test_df)
 
 test_anomaly_dataset, _, _ = create_dataset(anomaly_df)
 
-# %%
+
 class Encoder(tf.keras.layers.Layer):
   def __init__(self, intermediate_dim):
     super(Encoder, self).__init__()
@@ -570,7 +567,7 @@ def train(loss, model, opt, original):
     gradients = tape.gradient(loss(model, original), model.trainable_variables)
     gradient_variables = zip(gradients, model.trainable_variables)
     opt.apply_gradients(gradient_variables)
-# %%
+
 #========== TRAINNING MODEL =======================
 def train_model(model, train_dataset, val_dataset, n_epochs):
 
@@ -642,20 +639,19 @@ def train_model(model, train_dataset, val_dataset, n_epochs):
 
   return model.eval(), history
 
-# %%
+
 model, history = train_model(
   model, 
   train_dataset, 
   val_dataset, 
   n_epochs=150
 )
-# %%
+
 
 from kenchi.outlier_detection.statistical import HBOS
 
 hbos = HBOS(novelty=True).fit(X)
 y_pred = hbos.predict(X)
-# %%
 from keras.models import Sequential
 from keras.layers import LSTM, Dense
 from sklearn.metrics import mean_squared_error
@@ -675,22 +671,8 @@ print("MAE:", mean_absolute_error(y_test, y_pred))
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-# %%
 import torch
 x = torch.rand(5, 3)
 print(x)
 
-# %%
+
