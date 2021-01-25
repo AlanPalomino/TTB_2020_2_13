@@ -18,7 +18,7 @@ from itertools import combinations
 from matplotlib import gridspec
 from pprint import pprint 
 from scipy import stats
-import entropy as tpy
+#import entropy as tpy
 import pandas as pd
 import numpy as np
 import decimal
