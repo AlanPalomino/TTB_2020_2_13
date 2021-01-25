@@ -1,7 +1,7 @@
 
 
 ![](./imagenes/upiita_tt1.png)
-## <h1><center>Trabajo Terminal I</center></h1>
+## <h1><center>Trabajo Terminal II</center></h1>
 ##  <h1><center>Caracterización de precursores para patologías cardíacas mediante análisis complejo.</center></h1>
 
 
