@@ -1,10 +1,20 @@
+#!usr/bin/env python3
+# _*_ coding: utf-8 _*_ #
+#
+#___________________________________________________________________________
+#|                                                                         |
+#| Pruebas en servidor:                                                    |
+#|      Script para generación de pruebas en el servidor.                  |
+#|                                                                         |
+#|_________________________________________________________________________|
+
 from TT_utilities import NL_METHODS, nonLinearWindowing
+from entropy import spectral_entropy
 from scipy.stats import stats
 from pathlib import Path
-import pickle
-from entropy import spectral_entropy
 import pandas as pd
 import numpy as np
+import pickle
 import json
 import sys
 import os

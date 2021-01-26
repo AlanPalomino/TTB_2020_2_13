@@ -1,5 +1,14 @@
-# -*- coding: utf-8 -*-
-# %%
+#!usr/bin/env python3
+# _*_ coding: utf-8 _*_ #
+#
+#___________________________________________________________________________
+#|                                                                         |
+#|      Generación funciones a utilizar en main.py                         |
+#|                                                                         |
+#|                                                                         |
+#|_________________________________________________________________________|
+
+
 
 # ===================== Librerias Utilizadas ====================== #
 from concurrent.futures import ThreadPoolExecutor
