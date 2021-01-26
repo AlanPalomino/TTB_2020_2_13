@@ -28,7 +28,7 @@ punctual_names = [
 ]
 
 
-COND_ID = dict(
+CCOND_ID = dict(
     AF=['atrial_fibrillation', 0],
     AR=['atrial_fibrillation', 0],
     CHF=['congestive_heartfailure', 1],
