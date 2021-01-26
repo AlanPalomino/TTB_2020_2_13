@@ -40,6 +40,12 @@ La propuesta de solución para el problema planteado consiste en una metodologí
  El diseño de dicha solución puede verse de manera esquemática en la siguiente imagen.
  ![](./imagenes/ROADMAP_TT2.png)
 
+ ### Ingeniería de datos
+ <h5><center>Bases de Datos<center> <h5>
+
+La extracción de las Bases de Datos  se encuentra contenida en la carpeta de trabajo
+<pre><code> subtask </code></code>
+En dónde es posible diferenciarentre la extracción de la base de Datos DUMMY y MIMIC-III
 ## Trabajo Escrito
 
 El trabajo escrito generado a partir de esta investigación se encuentra contenido en:
