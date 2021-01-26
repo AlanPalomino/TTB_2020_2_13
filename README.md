@@ -41,11 +41,22 @@ La propuesta de solución para el problema planteado consiste en una metodologí
  ![](./imagenes/ROADMAP_TT2.png)
 
  ### Ingeniería de datos
- <h5><center>Bases de Datos<center> <h5>
+ <h4><center>Bases de Datos<center> <h4>
 
 La extracción de las Bases de Datos  se encuentra contenida en la carpeta de trabajo
-<pre><code> subtask </code></code>
+
+> subtask 
+
 En dónde es posible diferenciarentre la extracción de la base de Datos DUMMY y MIMIC-III
+> subtask/DUMMY Database Extraction
+> subtask/MIMIC3 Database Exctraction
+
+ <h4><center>Procesos en Servidor<center> <h4>
+
+ Una vez probadas y validadas las funciones por medio de la base DUMMY, se hace uso de un servidor
+para ejectutar dichas funciones a lo largo de la MIMIC-III. Las características del servidor se muestran a continuación.
+ ![](./imagenes/server_specs.jpeg) 
+ 
 ## Trabajo Escrito
 
 El trabajo escrito generado a partir de esta investigación se encuentra contenido en:
