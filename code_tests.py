@@ -41,7 +41,7 @@ import umap
 import umap.plot
 
 #from main import MainDummy
-%matplotlib inline
+
 sns.set(style='whitegrid', palette='muted', font_scale=1.2)
 
 HAPPY_COLORS_PALETTE = ["#01BEFE", "#FFDD00", "#FF7D00", "#FF006D", "#ADFF02", "#8F00FF"]
@@ -293,7 +293,7 @@ for n in (2, 3, 4, 5, 6, 7, 8, 9, 10):
 # %%
 
 #umap.plot.points(embedding)
-%time
+
 outlier_scores = sklearn.neighbors.LocalOutlierFactor(contamination=0.001428).fit_predict(X)
 #colors = np.array().map(["atrial_fibrilation", "myocardial_infarction", "congestive_heartfailure"])
 # %% 
