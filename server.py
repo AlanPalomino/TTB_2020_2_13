@@ -1,4 +1,4 @@
-#!usr/bin/env python3
+clear#!usr/bin/env python3
 # _*_ coding: utf-8 _*_ #
 #
 #___________________________________________________________________________
@@ -515,6 +515,131 @@ def lstm_test():
         predictions, pred_losses = predict(model, anomaly_dataset())
 
 
+def dummy_process(jsonfiles: list) -> pd.DataFrame:
+    def get_ids(row: pd.Series) -> pd.Series:
+        try:
+            row['condition'] = COND_ID.get(row['conditon'])[0]
+            row['cond_id'] = COND_ID.get(row['conditon'])[1]
+        except KeyError as e:
+            print(row)
+            raise KeyError(e)
+        return row
+
+    # Data es read from json paths
+    data = list()
+    for jf in jsonfiles:
+        with jf.open() as file:
+            mixed = json.load(file)
+            data.extend([reg for reg in mixed if reg['approved']])
+    data = pd.DataFrame(data)
+    data = data.apply(get_ids, axis=1)
+    # Dataframe adjustment and ordering
+    data["rr"] = data.apply(lambda row: np.array(row["rr"])/row["fs"], axis=1)
+    data["rr"] = data["rr"].apply(lambda signal: signal[np.where(signal < 2)])
+    data["length"] = data["rr"].apply(lambda signal: len(signal))
+    data["case"] = data["record"]
+    # We filter for only relevant columns
+    data = data[['case', 'record', 'condition', 'cond_id', 'length', 'rr']]
+    print(f" < Vectorizing...", end="")
+    data_DF = vectorize_df(data)
+    print("\tDONE >")
+
+    return data_DF
+
+
+def vectorize_df(data: pd.DataFrame):
+    def gen_vectors(row: pd.Series) -> pd.Series:
+        rr = row['rr']
+        # Linear
+        tags = ['mean', 'variance', 'skewness', 'kurtosis']
+        for tag, t in zip(tags, linearWindowing(rr)):
+            row[tag] = t
+        # Non Linear
+        tags = ['appen', 'sampen', 'hfd', 'dfa', 'pratio', 'hurst']
+        for m, t in zip(tags, nonLinearWindowing(rr)):
+            row[tag] = t
+        return row
+    return data.apply(gen_vectors, axis=1)
+
+
+def full_test(ddir: Path):
+    c = Case(ddir)
+    c.process(mode="full")
+    if len(c) != 0:
+        with open(f'csv_datasets/sample_case{c._case_name}.pkl', 'wb') as pf:
+            pickle.dump(c, pf)
+        print(f'\n\n\tTEST CASE with {len(c)} records processed and saved to: sample_case{c._case_name}.pkl\n\n')
+
+
+def sample_graphs():
+    # PATHOLOGICAL CASES PROCESING
+    af_dirs = list(Path('Data/').glob('atrial_fibrillation_p*'))[:4]
+    mi_dirs = list(Path('Data/').glob('myocardial_infarction_p*'))[:4]
+    ch_dirs = list(Path('Data/').glob('congestive_heartfailure_p*'))[:4]
+    
+    data_dirs = [ gen_name(d) for d in af_dirs+mi_dirs+ch_dirs]
+    
+    p = Pool()
+    p.map(full_test, data_dirs)
+    p.close()
+    
+    # PATHOLOGICAL DATAFRAME GENERATION
+    
+    CASES = list()
+    for ddir in list(Path('csv_datasets/').glob('sample_case*')):
+        with ddir.open('rb') as pf:
+            CASES.append(
+                pickle.load(pf)
+            )
+    
+    columns = [
+        'case', 'record', 'condition', 'condition_id', 'length',
+        'rr', 'mean', 'variance', 'skewness', 'kurtosis',
+        'appen', 'sampen', 'hfd', 'dfa', 'pratio', 'hurst'
+    ]
+    
+    PATHOLOGIC_DF = pd.DataFrame(columns=columns)
+    for c in CASES:
+        for r in c:
+            PATHOLOGIC_DF = PATHOLOGIC_DF.append(
+                pd.Series(
+                    data=[
+                        c._case_name,
+                        r.name,
+                        c.pathology,
+                        COND_ID[c.pathology],
+                        len(r.rr),
+                        r.rr,
+                        r.LINEAR['mean'],
+                        r.LINEAR['var'],
+                        r.LINEAR['skew'],
+                        r.LINEAR['kurt'],
+                        r.N_LINEAR['ae'],
+                        r.N_LINEAR['se'],
+                        r.N_LINEAR['hfd'],
+                        r.N_LINEAR['dfa'],
+                        r.N_LINEAR['psd'],
+                        r.N_LINEAR['hst']
+                    ],
+                    index=columns
+                ),
+                ignore_index=True
+            )
+    
+    with open('Sample_Pathologic.pkl', 'wb') as pf:
+        pickle.dump(PATHOLOGIC_DF, pf)
+    
+    # CONTROL CASES PROCESSING
+    h_jsonfiles = [
+        Path('Data_Jsons/normal-sinus-rhythm-rr-interval-database-1.0.0.json'),
+        Path('Data_Jsons/nn-cases-healthy-control.json')
+    ]
+    HEALTHY_DF = dummpy_process(h_jsonfiles)
+    
+    with open('Sample_Healthy.pkl', 'wb') as pf:
+        pickle.dump(HEALTHY_DF, pf)
+
+
 def main(argv):
     global OPTS
     for opt in OPTS:
@@ -551,6 +676,10 @@ OPTS = [
         'opts': ['-st', '--save_test'],
         'desc': 'Recounts each data compendium and generates a csv file.',
         'func': save_test
+    },{
+        'opts': ['-sg', '--sample_graphs'],
+        'desc': 'Gets uniform data for posterior plotting by pickled DataFrames.',
+        'func': sample_graphs
     }
 ]
 

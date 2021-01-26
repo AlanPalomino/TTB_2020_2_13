@@ -137,8 +137,7 @@ class Case():
     @timeit
     def _linear_analysis_c(self):
         for record in self.RECORDS:
-            if record not in self.l_sig and record._linear_analysis_r(self._main_signal):
-                self.l_sig.append(record)
+            record._linear_analysis_r()
 
     @timeit
     def _non_linear_analysis_c(self):
@@ -162,10 +161,6 @@ class Case():
         recommended to run only once.
         """
 
-        def run_all(d: dict):
-            [v() for k, v in d.items() if k != "full"]
-            return
-
         analysis_selector = {
             "linear": self._linear_analysis_c,
             "nonlinear": self._non_linear_analysis_c
@@ -186,8 +181,10 @@ class Case():
             else:
                 print(f"WARNING - Case {self._case_name} record's have no valid signal for processing.")
                 return
+
             if mode == 'full':
-                run_all(analysis_selector)
+                self._non_linear_analysis_c()
+                self._linear_analysis_c()
                 self._processed = True
                 return
             analysis_selector.get(mode)()
@@ -288,20 +285,13 @@ class Record():
         reco = wfdb.rdrecord(str(self.record_dir))
         return reco.p_signal
 
-    def _linear_analysis_r(self, signal: str):
-        if self.rr is None:
-            # get RR
-            raw_signal = self[signal]
-            self.rr = np.diff(get_peaks(raw_signal, self.fs))
-            if len(self.rr) < 2048*3:
-                return False
-            self.hurst = get_hurst(self.rr)
-        m, v, s, k = linearWindowing(self.rr, w_len=1024, over=0.95)
+    def _linear_analysis_r(self):
+        m, v, s, k = linearWindowing(self.rr)
         self.LINEAR = {
-            "means": m,
+            "mean": m,
             "var": v,
-            "skewness": s,
-            "kurtosis": k
+            "skew": s,
+            "kurt": k
         }
         return True
 
@@ -314,13 +304,6 @@ class Record():
             if len(self.rr) < RR_WINDOW_THRESHOLD:
                 print(f' > X Record {self.name} - Analysis not possible, rr too short.')
                 return False
-            # self.hurst = get_hurst(self.rr_int)
-
-        # HRVANALYSIS SECTION
-        # self.time_domain = get_time_domain_features(self.rr_temp)
-        # self.freq_domain = get_frequency_domain_features(self.rr_temp)
-        # self.samp_entropy = get_sampen(self.rr_temp)
-        # END OF SECTION
 
         self.N_LINEAR = {
             m["tag"]: t for m, t in zip(NL_METHODS,
@@ -368,7 +351,8 @@ def linearWindowing(rr_signal: np.ndarray):
 
     for idx in range(0, len(rr_signal)-RR_WLEN, RR_STEP):
         window_slice = slice(idx, idx+RR_WLEN)
-        ds = stats.describe(rr_signal[window_slice])
+        rr_window = rr_signal[window_slice]
+        ds = stats.describe(rr_window)
         means.append(ds[2])
         var.append(ds[3])
         skew.append(ds[4])

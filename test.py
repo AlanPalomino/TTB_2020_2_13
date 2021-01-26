@@ -134,10 +134,7 @@ def load_dummy():
 
         print('No previous Pickled data has been found, generating from zero.')
 
-        h_jsonfiles = [
-            Path('Data_Jsons/normal-sinus-rhythm-rr-interval-database-1.0.0.json'),
-            Path('Data_Jsons/nn-cases-healthy-control.json')
-                ]
+        
         s_jsonfiles = [
             Path('Data_Jsons/afdb-1.0.0.physionet.org.json'),
             Path('Data_Jsons/chfdb-1.0.0.physionet.org.json'),
@@ -157,13 +154,7 @@ def load_dummy():
     print("\tDONE >")
 
 
-def vectorize_df(data: pd.DataFrame):
-    def gen_vectors(row: pd.Series) -> pd.Series:
-        rr = row['rr']
-        for m, t in zip(NL_METHODS, nonLinearWindowing(rr)):
-            row[m['tag']] = t
-        return row
-    return data.apply(gen_vectors, axis=1)
+
 
 
 def linear2csv():
